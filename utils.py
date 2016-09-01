@@ -477,7 +477,7 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
         else:
             exc_type, exc_obj, tb = sys.exc_info()
             warning( "Source line %d - %s on File line %d:\n%s\n" %( tb.tb_lineno, e, lineno, line ) )
-        exit(2)
+        raise e
 
     FMAT.close()
     warning( "\n%d embeddings read, %d kept\n" %(orig_wid, wid) )
