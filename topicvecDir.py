@@ -69,16 +69,16 @@ class topicvecDir:
 
         self.vocab_dict = loadUnigramFile(self.unigramFilename)
 
-        embedding_npyfile = self.word_vec_file + ".npy"
-        if os.path.isfile(embedding_npyfile):
-            print "Load embeddings from npy file '%s'" % embedding_npyfile
-            embedding_arrays = np.load(embedding_npyfile)
-            self.V, self.vocab, self.word2ID, skippedWords_whatever = embedding_arrays
-        else:
-            self.V, self.vocab, self.word2ID, skippedWords_whatever = load_embeddings(self.word_vec_file, self.unigramFilename)
-            embedding_arrays = np.array([self.V, self.vocab, self.word2ID, skippedWords_whatever])
-            print "Save embeddings to npy file '%s'" % embedding_npyfile
-            np.save(embedding_npyfile, embedding_arrays)
+        # embedding_npyfile = self.word_vec_file + ".npy"
+        # if os.path.isfile(embedding_npyfile):
+        #     print "Load embeddings from npy file '%s'" % embedding_npyfile
+        #     embedding_arrays = np.load(embedding_npyfile)
+        #     self.V, self.vocab, self.word2ID, skippedWords_whatever = embedding_arrays
+        # else:
+        self.V, self.vocab, self.word2ID, skippedWords_whatever = load_embeddings(self.word_vec_file, self.unigramFilename)
+        # embedding_arrays = np.array([self.V, self.vocab, self.word2ID, skippedWords_whatever])
+        # print "Save embeddings to npy file '%s'" % embedding_npyfile
+        # np.save(embedding_npyfile, embedding_arrays)
 
         # map of word -> id of all words with embeddings
         vocab_dict2 = {}
@@ -120,10 +120,10 @@ class topicvecDir:
             self.u2 = normalize(self.u2)
             self.V2 = self.V[:self.Mstep_sample_topwords]
 
-        customStopwordList = re.split(r"\s+", self.customStopwords)
-        for stop_w in customStopwordList:
-            stopwordDict[stop_w] = 1
-        print "Custom stopwords: %s" % (", ".join(customStopwordList))
+        # customStopwordList = re.split(r"\s+", self.customStopwords)
+        # for stop_w in customStopwordList:
+        #     stopwordDict[stop_w] = 1
+        # print "Custom stopwords: %s" % (", ".join(customStopwordList))
 
         if 'fileLogger' not in kwargs:
             self.logfilename = kwargs.get('logfilename', "topicvecDir")
