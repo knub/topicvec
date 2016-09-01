@@ -59,12 +59,9 @@ def usage():
   -w:          Dump words only (no inference of topics)"""
 
 
-corpusName = None
 corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
 
-setNames = []
 topic_vec_file = None
-MAX_ITERS = -1
 MAX_TopicProp_ITERS = 1
 onlyDumpWords = False
 separateCatTraining = False
@@ -72,40 +69,38 @@ onlyInferTopicProp = False
 topicTraitStr = ""
 onlyGetOriginalText = False
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "p:i:wso")
+parser = ArgumentParser("topicvec")
+parser.add_argument("--corpus", type=str)
+parser.add_argument("--vocabulary", type=str)
+parser.add_argument("--embeddings", type=str)
+parser.add_argument("--set-names", type=str)
+parser.add_argument("--max-iterations", type=int)
+args = parser.parse_args()
 
-    if len(args) == 0:
-        raise getopt.GetoptError("Not enough free arguments")
-    corpusName = args[0]
-    if len(args) == 2:
-        setNames = args[1].split(",")
-    if len(args) > 2:
-        raise getopt.GetoptError("Too many free arguments")
+corpusName = args.corpus
+setNames = args.set_names.split(",")
+MAX_ITERS = args.max_iterations
+config["unigramFilename"] = args.vocabulary
+config["word_vec_file"] = args.embeddings
 
-    for opt, arg in opts:
-        if opt == '-p':
-            onlyInferTopicProp = True
-            topic_vec_file = arg
-            # if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
-            # disable to speed up
-            config['useDrdtApprox'] = False
-        if opt == '-i':
-            MAX_ITERS = int(arg)
-        if opt == '-w':
-            onlyDumpWords = True
-            # if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
-            # disable to speed up
-            config['useDrdtApprox'] = False
-        if opt == '-s':
-            separateCatTraining = True
-        if opt == '-o':
-            onlyGetOriginalText = True
-
-except getopt.GetoptError, e:
-    print e.msg
-    usage()
-    sys.exit(2)
+# for opt, arg in opts:
+    # if opt == '-p':
+    #     onlyInferTopicProp = True
+    #     topic_vec_file = arg
+    #     if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
+    #     disable to speed up
+    #     config['useDrdtApprox'] = False
+    # if opt == '-i':
+    #     MAX_ITERS = int(arg)
+    # if opt == '-w':
+    #     onlyDumpWords = True
+        # if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
+        # disable to speed up
+        # config['useDrdtApprox'] = False
+    # if opt == '-s':
+    #     separateCatTraining = True
+    # if opt == '-o':
+    #     onlyGetOriginalText = True
 
 if not onlyGetOriginalText:
     # The leading 'all-bogus' is only to get word mappings from the original IDs in
