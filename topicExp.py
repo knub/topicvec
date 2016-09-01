@@ -1,8 +1,12 @@
-import getopt
+# import getopt
+from argparse import ArgumentParser
 
 from corpusLoader import *
 from topicvecDir import topicvecDir
 from utils import *
+import mkl
+
+mkl.set_num_threads(3)
 
 config = dict(
     unigramFilename="/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/model.dim-50.skip-gram.embedding.restricted.vocab.counts",
