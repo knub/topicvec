@@ -13,7 +13,7 @@ config = dict(
     word_vec_file="/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/dim-50.skip-gram.embedding.model.restricted.vocab.embedding",
     # word_vec_file = "25000-500-EM.vec",
     # word_vec_file = "7929-400-EM.vec",
-    K=100,
+    K=50,
     # for separate category training, each category has 10 topics, totalling 200
     sepK_20news=15,
     sepK_reuters=12,
@@ -134,17 +134,7 @@ def main():
         basename = "%s-%s-%d" % (corpusName, setName, setDocNum)
         config['logfilename'] = basename
 
-        # dump original words (without filtering)
-        orig_filename = "%s.orig.txt" % basename
-        ORIG = open(orig_filename, "w")
-        for wordsInSentences in orig_docs_words:
-            for sentence in wordsInSentences:
-                for w in sentence:
-                    w = w.lower()
-                    ORIG.write("%s " % w)
-            ORIG.write("\n")
-        ORIG.close()
-        print "%d original docs saved in '%s'" % (setDocNum, orig_filename)
+        # write_original_docs(basename, orig_docs_words, setDocNum)
 
         if onlyGetOriginalText:
             continue
@@ -176,91 +166,15 @@ def main():
 
             hasIdMapping = True
             onlyGetWidMapping = False
-            print "Word mapping created: %d -> %d" % (sorted_wids[-1], uniq_wid_num)
-            id2word_filename = "%s.id2word.txt" % basename
-            ID2WORD = open(id2word_filename, "w")
-            for i in xrange(uniq_wid_num):
-                ID2WORD.write("%d\t%s\n" % (i, compactIds_word[i]))
-            ID2WORD.close()
+            # write_word_mapping(basename, compactIds_word, sorted_wids, uniq_wid_num)
             continue
 
-        # dump words in stanford classifier format
-        stanford_filename = "%s.stanford-bow.txt" % basename
-        STANFORD = open(stanford_filename, "w")
-        for i in xrange(readDocNum):
-            wids = topicvec.docs_wids[i]
-            words = [topicvec.vocab[j] for j in wids]
-            text = " ".join(words)
-            catID = docs_cat[i]
-            category = category_names[catID]
-            doc_name = docs_name[i]
-            STANFORD.write("%s\t%s\t%s\n" % (category, doc_name, text))
-
-        STANFORD.close()
-        print "%d docs saved in '%s' in stanford bow format" % (readDocNum, stanford_filename)
-
-        # dump words in sLDA format
-        slda_bow_filename = "%s.slda-bow.txt" % basename
-        slda_label_filename = "%s.slda-label.txt" % basename
-        SLDA_BOW = open(slda_bow_filename, "w")
-        SLDA_LABEL = open(slda_label_filename, "w")
-
-        for i in xrange(readDocNum):
-            wids = topicvec.docs_wids[i]
-            # compact wid to freq
-            cwid2freq = {}
-            for wid in wids:
-                cwid = wid2compactId[wid]
-                if cwid in cwid2freq:
-                    # wid could be 0, but svm feature index cannot be 0
-                    # +1 to avoid 0 being used as a feature index
-                    cwid2freq[cwid] += 1
-                else:
-                    cwid2freq[cwid] = 1
-            catID = docs_cat[i]
-            sorted_cwids = sorted(cwid2freq.keys())
-            uniq_wid_num = len(sorted_cwids)
-            # sLDA requires class lables to start from 0
-            SLDA_LABEL.write("%d\n" % catID)
-            SLDA_BOW.write("%d" % uniq_wid_num)
-            for cwid in sorted_cwids:
-                SLDA_BOW.write(" %d:%d" % (cwid, cwid2freq[cwid]))
-            SLDA_BOW.write("\n")
-
-        SLDA_BOW.close()
-        SLDA_LABEL.close()
-
-        print "%d docs saved in '%s' and '%s' in sLDA bow format" % (readDocNum,
-                                                                     slda_bow_filename, slda_label_filename)
-
-        # dump words in libsvm/svmlight format
-        svmbow_filename = "%s.svm-bow.txt" % basename
-        SVMBOW = open(svmbow_filename, "w")
-        for i in xrange(readDocNum):
-            wids = topicvec.docs_wids[i]
-            cwid2freq = {}
-            for wid in wids:
-                # cwid could be 0, but svm feature index cannot be 0
-                # +1 to avoid 0 being used as a feature index
-                cwid = wid2compactId[wid] + 1
-                if cwid in cwid2freq:
-                    cwid2freq[cwid] += 1
-                else:
-                    cwid2freq[cwid] = 1
-            catID = docs_cat[i]
-            sorted_cwids = sorted(cwid2freq.keys())
-            SVMBOW.write("%d" % (catID + 1))
-            for cwid in sorted_cwids:
-                SVMBOW.write(" %d:%d" % (cwid, cwid2freq[cwid]))
-            SVMBOW.write("\n")
-
-        SVMBOW.close()
-        print "%d docs saved in '%s' in svm bow format" % (readDocNum, svmbow_filename)
+        doc_name = write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
+        # write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
+        # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
 
         if onlyDumpWords:
             continue
-
-        # pdb.set_trace()
 
         # load topics from a file, infer the topic proportions, and save the proportions
         if onlyInferTopicProp:
@@ -424,6 +338,105 @@ def main():
                     slim_T = np.concatenate(slim_T)
                     save_matrix_as_text("%s-sep%d-em%d-slim.topic.vec" % (basename, slim_T.shape[0], topicvec.MAX_EM_ITERS),
                                         "slim topics", slim_T)
+
+
+def write_word_mapping(basename, compactIds_word, sorted_wids, uniq_wid_num):
+    print "Word mapping created: %d -> %d" % (sorted_wids[-1], uniq_wid_num)
+    id2word_filename = "%s.id2word.txt" % basename
+    ID2WORD = open(id2word_filename, "w")
+    for i in xrange(uniq_wid_num):
+        ID2WORD.write("%d\t%s\n" % (i, compactIds_word[i]))
+    ID2WORD.close()
+
+
+def write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId):
+    # dump words in libsvm/svmlight format
+    svmbow_filename = "%s.svm-bow.txt" % basename
+    SVMBOW = open(svmbow_filename, "w")
+    for i in xrange(readDocNum):
+        wids = topicvec.docs_wids[i]
+        cwid2freq = {}
+        for wid in wids:
+            # cwid could be 0, but svm feature index cannot be 0
+            # +1 to avoid 0 being used as a feature index
+            cwid = wid2compactId[wid] + 1
+            if cwid in cwid2freq:
+                cwid2freq[cwid] += 1
+            else:
+                cwid2freq[cwid] = 1
+        catID = docs_cat[i]
+        sorted_cwids = sorted(cwid2freq.keys())
+        SVMBOW.write("%d" % (catID + 1))
+        for cwid in sorted_cwids:
+            SVMBOW.write(" %d:%d" % (cwid, cwid2freq[cwid]))
+        SVMBOW.write("\n")
+    SVMBOW.close()
+    print "%d docs saved in '%s' in svm bow format" % (readDocNum, svmbow_filename)
+
+
+def write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId):
+    # dump words in sLDA format
+    slda_bow_filename = "%s.slda-bow.txt" % basename
+    slda_label_filename = "%s.slda-label.txt" % basename
+    SLDA_BOW = open(slda_bow_filename, "w")
+    SLDA_LABEL = open(slda_label_filename, "w")
+    for i in xrange(readDocNum):
+        wids = topicvec.docs_wids[i]
+        # compact wid to freq
+        cwid2freq = {}
+        for wid in wids:
+            cwid = wid2compactId[wid]
+            if cwid in cwid2freq:
+                # wid could be 0, but svm feature index cannot be 0
+                # +1 to avoid 0 being used as a feature index
+                cwid2freq[cwid] += 1
+            else:
+                cwid2freq[cwid] = 1
+        catID = docs_cat[i]
+        sorted_cwids = sorted(cwid2freq.keys())
+        uniq_wid_num = len(sorted_cwids)
+        # sLDA requires class lables to start from 0
+        SLDA_LABEL.write("%d\n" % catID)
+        SLDA_BOW.write("%d" % uniq_wid_num)
+        for cwid in sorted_cwids:
+            SLDA_BOW.write(" %d:%d" % (cwid, cwid2freq[cwid]))
+        SLDA_BOW.write("\n")
+    SLDA_BOW.close()
+    SLDA_LABEL.close()
+    print "%d docs saved in '%s' and '%s' in sLDA bow format" % (readDocNum,
+                                                                 slda_bow_filename, slda_label_filename)
+
+
+def write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec):
+    # dump words in stanford classifier format
+    stanford_filename = "%s.stanford-bow.txt" % basename
+    STANFORD = open(stanford_filename, "w")
+    for i in xrange(readDocNum):
+        wids = topicvec.docs_wids[i]
+        words = [topicvec.vocab[j] for j in wids]
+        text = " ".join(words)
+        catID = docs_cat[i]
+        category = category_names[catID]
+        doc_name = docs_name[i]
+        STANFORD.write("%s\t%s\t%s\n" % (category, doc_name, text))
+    STANFORD.close()
+    print "%d docs saved in '%s' in stanford bow format" % (readDocNum, stanford_filename)
+    return doc_name
+
+
+def write_original_docs(basename, orig_docs_words, setDocNum):
+    # dump original words (without filtering)
+    orig_filename = "%s.orig.txt" % basename
+    ORIG = open(orig_filename, "w")
+    for wordsInSentences in orig_docs_words:
+        for sentence in wordsInSentences:
+            for w in sentence:
+                w = w.lower()
+                ORIG.write("%s " % w)
+        ORIG.write("\n")
+    ORIG.close()
+    print "%d original docs saved in '%s'" % (setDocNum, orig_filename)
+
 
 if __name__ == "__main__":
     main()
