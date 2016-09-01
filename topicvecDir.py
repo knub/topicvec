@@ -75,7 +75,7 @@ class topicvecDir:
             embedding_arrays = np.load(embedding_npyfile)
             self.V, self.vocab, self.word2ID, skippedWords_whatever = embedding_arrays
         else:
-            self.V, self.vocab, self.word2ID, skippedWords_whatever = load_embeddings(self.word_vec_file)
+            self.V, self.vocab, self.word2ID, skippedWords_whatever = load_embeddings(self.word_vec_file, self.unigramFilename)
             embedding_arrays = np.array([self.V, self.vocab, self.word2ID, skippedWords_whatever])
             print "Save embeddings to npy file '%s'" % embedding_npyfile
             np.save(embedding_npyfile, embedding_arrays)

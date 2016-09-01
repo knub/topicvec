@@ -415,7 +415,7 @@ def load_matrix_from_text(filename, rowTypeName, colSep=" "):
 
 
 # load top maxWordCount words, plus extraWords
-def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=False):
+def load_embeddings(filename, vocabFileName, maxWordCount=-1, extraWords={}, record_skipped=False):
     FMAT = open(filename)
     warning("Load embedding text file '%s'\n" % (filename))
 
@@ -426,15 +426,21 @@ def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=Fal
     vocab = []
     precision = np.float32
 
-    try:
-        header = FMAT.readline()
-        lineno = 1
-        match = re.match(r"(\d+) (\d+)", header)
-        if not match:
-            raise ValueError(lineno, header)
+    vocabFromFile = open(vocabFileName)
+    vocabFromFile = [l.rstrip().split('\t')[0] for l in vocabFromFile.readlines()]
 
-        vocab_size = int(match.group(1))
-        N = int(match.group(2))
+    lines = [l.rstrip() for l in FMAT.readlines()]
+    try:
+        # header = FMAT.readline()
+        lineno = 0
+        # match = re.match(r"(\d+) (\d+)", header)
+        # if not match:
+        #     raise ValueError(lineno, header)
+
+        # vocab_size = int(match.group(1))
+        # N = int(match.group(2))
+        vocab_size = len(lines)
+        N = len(lines[0].split(" "))
 
         if maxWordCount > 0:
             maxWordCount = min(maxWordCount, vocab_size)
@@ -452,7 +458,7 @@ def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=Fal
         wid = 0
         orig_wid = 0
 
-        for line in FMAT:
+        for line in lines:
             lineno += 1
             line = line.strip()
             # end of file
@@ -464,7 +470,8 @@ def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=Fal
             fields = line.split(' ')
             # remove empty fields
             fields = filter(lambda x: x, fields)
-            w = fields[0]
+            # w = fields[0]
+            w = vocabFromFile[lineno - 1]
 
             if w in extraWords:
                 del extraWords[w]
@@ -480,7 +487,7 @@ def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=Fal
             orig_wid += 1
 
             if isInterested:
-                V[wid] = np.array([float(x) for x in fields[1:]], dtype=precision)
+                V[wid] = np.array([float(x) for x in fields], dtype=precision)
                 word2id[w] = wid
                 vocab.append(w)
                 wid += 1
@@ -501,8 +508,6 @@ def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=Fal
 
     FMAT.close()
     warning("\n%d embeddings read, %d kept\n" % (orig_wid, wid))
-
-    # pdb.set_trace()
 
     if wid < len(V):
         V = V[:wid]
