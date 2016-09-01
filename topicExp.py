@@ -89,25 +89,6 @@ def main():
     config["unigramFilename"] = args.vocabulary
     config["word_vec_file"] = args.embeddings
 
-    # for opt, arg in opts:
-        # if opt == '-p':
-        #     onlyInferTopicProp = True
-        #     topic_vec_file = arg
-        #     if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
-        #     disable to speed up
-        #     config['useDrdtApprox'] = False
-        # if opt == '-i':
-        #     MAX_ITERS = int(arg)
-        # if opt == '-w':
-        #     onlyDumpWords = True
-            # if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
-            # disable to speed up
-            # config['useDrdtApprox'] = False
-        # if opt == '-s':
-        #     separateCatTraining = True
-        # if opt == '-o':
-        #     onlyGetOriginalText = True
-
     if not onlyGetOriginalText:
         # The leading 'all-bogus' is only to get word mappings from the original IDs in
         # the embedding file to a compact word ID list, to speed up computation of sLDA
