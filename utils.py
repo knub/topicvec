@@ -1,31 +1,31 @@
 # -*- coding=GBK -*-
 
-import numpy as np
-import scipy.linalg
-from scipy.stats.stats import spearmanr
-import time
-import re
-import pdb
-import sys
-import os
 import glob
 import logging
-from psutil import virtual_memory
+import os
 import os.path
 import random
-import unicodedata
+import re
 import sys
+import time
+import unicodedata
 
-unicode_punc_tbl = dict.fromkeys( i for i in xrange(128, sys.maxunicode)
-                      if unicodedata.category(unichr(i)).startswith('P') )
+import numpy as np
+from psutil import virtual_memory
+from scipy.stats.stats import spearmanr
 
-logging.basicConfig( level=logging.DEBUG )
+unicode_punc_tbl = dict.fromkeys(i for i in xrange(128, sys.maxunicode)
+                                 if unicodedata.category(unichr(i)).startswith('P'))
+
+logging.basicConfig(level=logging.DEBUG)
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
+
 def str2dict(s):
-    wordlist = re.split( "\s+", s )
+    wordlist = re.split("\s+", s)
     return dict.fromkeys(wordlist, 1)
+
 
 stopwordStr = '''a about above across after again against all almost alone along also
 although always am among an and another any anybody anyone anything
@@ -50,34 +50,38 @@ stopwordDict = str2dict(stopwordStr)
 np.seterr(all="raise")
 np.set_printoptions(suppress=True, threshold=np.nan, precision=3)
 
+
 def initConsoleLogger(loggerName):
     consoleLogger = logging.getLogger(loggerName)
     streamHandler = logging.StreamHandler()
-    consoleLogger.addHandler(streamHandler)  
+    consoleLogger.addHandler(streamHandler)
     return consoleLogger
-    
+
+
 def initFileLogger(loggerName, isAppending=False):
     loggerName = os.path.splitext(loggerName)[0]
-    currDate = timeToStr( time.time(), "%m.%d" )
-    filename = "%s-%s.log" %( loggerName, currDate )
+    currDate = timeToStr(time.time(), "%m.%d")
+    filename = "%s-%s.log" % (loggerName, currDate)
     sn = 0
     while os.path.isfile(filename):
         sn += 1
-        filename = "%s-%s-%d.log" %( loggerName, currDate, sn )
-  
+        filename = "%s-%s-%d.log" % (loggerName, currDate, sn)
+
     fileLogger = logging.getLogger(loggerName)
     if isAppending:
         mode = 'a'
     else:
         mode = 'w'
-        
+
     fileHandler = logging.FileHandler(filename, mode=mode)
     fileLogger.addHandler(fileHandler)
     return fileLogger
-    
+
+
 def warning(*objs):
     sys.stderr.write(*objs)
-    
+
+
 class Timer(object):
     def __init__(self, name=None):
         self.name = name
@@ -97,69 +101,73 @@ class Timer(object):
         if isStr:
             if self.name:
                 if firstCall:
-                    return '%s elapsed: %.2f' % ( self.name, totalElapsed )
-                return '%s elapsed: %.2f/%.2f' % ( self.name, totalElapsed, interElapsed )
+                    return '%s elapsed: %.2f' % (self.name, totalElapsed)
+                return '%s elapsed: %.2f/%.2f' % (self.name, totalElapsed, interElapsed)
             else:
                 if firstCall:
-                    return 'Elapsed: %.2f' % ( totalElapsed )
-                return 'Elapsed: %.2f/%.2f' % ( totalElapsed, interElapsed )
+                    return 'Elapsed: %.2f' % (totalElapsed)
+                return 'Elapsed: %.2f/%.2f' % (totalElapsed, interElapsed)
         else:
             return totalElapsed, interElapsed
 
     def printElapseTime(self):
         print self.getElapseTime()
 
+
 def timeToStr(timeNum, fmt="%H:%M:%S"):
     timeStr = time.strftime(fmt, time.localtime(timeNum))
     return timeStr
+
 
 # Weight: nonnegative real matrix. If not specified, return the unweighted norm
 def norm1(M, Weight=None):
     if len(M.shape) == 1:
         if Weight is not None:
-            return np.sum( np.abs( M * Weight ) )
+            return np.sum(np.abs(M * Weight))
         else:
-            return np.sum( np.abs(M) )
+            return np.sum(np.abs(M))
 
     s = 0
-    
+
     if Weight is not None:
-        for i in xrange( len(M) ):
+        for i in xrange(len(M)):
             # row by row calculation. 
             # If doing matrix multiplication, a big temporary matrix will be generated, consuming a lot RAM
-            row = np.abs( M[i] * Weight[i] )
+            row = np.abs(M[i] * Weight[i])
             s += np.sum(row)
     else:
-        for i in xrange( len(M) ):
-            row = np.abs( M[i] )
+        for i in xrange(len(M)):
+            row = np.abs(M[i])
             s += np.sum(row)
 
     return s
+
 
 def normF(M, Weight=None):
     if len(M.shape) == 1:
         if Weight is not None:
             # M*M makes all elems positive, and all elems of Weight are nonnegative. So no need to take abs()
-            return np.sqrt( np.sum( M * M * Weight ) )
+            return np.sqrt(np.sum(M * M * Weight))
         else:
-            return np.sqrt( np.sum( M * M ) )
-    
+            return np.sqrt(np.sum(M * M))
+
     s = 0
-    
+
     if Weight is not None:
-        for i in xrange( len(M) ):
+        for i in xrange(len(M)):
             # row by row calculation. 
             # If doing matrix multiplication, a big temporary matrix will be generated, consuming a lot RAM
             row = M[i] * M[i] * Weight[i]
             s += np.sum(row)
     else:
-        for i in xrange( len(M) ):
+        for i in xrange(len(M)):
             row = M[i] * M[i]
             s += np.sum(row)
 
     return np.sqrt(s)
 
-# normalize a 1-d or 2-d array of nonnegative numbers: 
+
+# normalize a 1-d or 2-d array of nonnegative numbers:
 # keep the original array intact, return a copy of normalized array
 # when array is 2d:
 # axis=0: normalize columns. axis=1: normalize rows (default)
@@ -173,48 +181,54 @@ def normalize(data, axis=1):
         return data / s
     elif axis == 1:
         ss = np.sum(data, axis=1)
-        return data / np.tile(ss, (data.shape[1],1)).T
+        return data / np.tile(ss, (data.shape[1], 1)).T
     else:
         raise RuntimeError('function normalize: axis must be 0/1')
+
 
 # normalize a 1-d or 2-d array of numbers, w.r.t. F-norm
 def normalizeF(data, axis=1):
     if data.ndim == 1:
-        return data / normF(data) 
-    
+        return data / normF(data)
+
     data2 = np.copy(data)
     if axis == 0:
         for i in xrange(data2.shape[1]):
-            if normF(data2[:,i]) > 0:
-                data2[:,i] /= normF(data2[:,i])
+            if normF(data2[:, i]) > 0:
+                data2[:, i] /= normF(data2[:, i])
         return data2
-        
+
     elif axis == 1:
         for i in xrange(data2.shape[0]):
             if normF(data2[i]) > 0:
                 data2[i] /= normF(data2[i])
-        return data2                
+        return data2
     else:
         raise RuntimeError('function normalize: axis must be 0/1')
+
 
 def cosine(x, y):
     x2 = normalizeF(x)
     y2 = normalizeF(y)
     return np.dot(x2, y2)
 
+
 # Given a list of matrices, return a list of their norms
-def matSizes( norm, Ms, Weight=None ):
+def matSizes(norm, Ms, Weight=None):
     sizes = []
     for M in Ms:
-        sizes.append( norm(M, Weight) )
+        sizes.append(norm(M, Weight))
 
     return sizes
 
+
 def sym(M):
-    return ( M + M.T ) / 2.0
+    return (M + M.T) / 2.0
+
 
 def skew(M):
-    return ( M - M.T ) / 2.0
+    return (M - M.T) / 2.0
+
 
 # Assume A has been approximately sorted by rows, and in each row, sorted by columns
 # matrix F returned from loadBigramFile satisfies this
@@ -222,21 +236,22 @@ def skew(M):
 # return the idea cut point above which there are at least "fraction" of the elements
 # these elements will be cut off to this upper limit
 def getQuantileCut(A, fraction):
-    totalNonzeroElemCount = np.sum( A > 0 ) #A.shape[0] * A.shape[1]
-    maxElem = A[0,0]
+    totalNonzeroElemCount = np.sum(A > 0)  # A.shape[0] * A.shape[1]
+    maxElem = A[0, 0]
     cutPoint = maxElem
     idealCutPoint = cutPoint
     idealFound = False
-    
+
     while cutPoint >= 10:
-        aboveElemCount = np.sum( A >= cutPoint )
-        print "Cut point %.0f: %d/%.3f%%" %( cutPoint, aboveElemCount, aboveElemCount * 100.0 / totalNonzeroElemCount )
+        aboveElemCount = np.sum(A >= cutPoint)
+        print "Cut point %.0f: %d/%.3f%%" % (cutPoint, aboveElemCount, aboveElemCount * 100.0 / totalNonzeroElemCount)
         if not idealFound and aboveElemCount >= totalNonzeroElemCount * fraction:
             idealCutPoint = cutPoint
             idealFound = True
         cutPoint /= 2.0
 
     return idealCutPoint
+
 
 # find the principal eigenvalue/eigenvector: e1 & v1.
 # if e1 < 0, then the left principal singular vector is -v1, and the right is v1.
@@ -248,157 +263,162 @@ def power_iter(M):
     old_vec = vec
 
     for i in xrange(MAXITER):
-        vec2 = np.dot( M, vec )
+        vec2 = np.dot(M, vec)
         magnitude = np.linalg.norm(vec2)
         vec2 /= magnitude
         vec = vec2
 
-        if i%2 == 1:
-            error = np.linalg.norm( vec2 - old_vec )
-            #print "%d: %f, %f" %( i+1, magnitude, error )
+        if i % 2 == 1:
+            error = np.linalg.norm(vec2 - old_vec)
+            # print "%d: %f, %f" %( i+1, magnitude, error )
             if error < epsilon:
                 break
             old_vec = vec2
 
-    vec2 = np.dot( M, vec )
-    if np.sum(vec2)/np.sum(vec) > 0:
+    vec2 = np.dot(M, vec)
+    if np.sum(vec2) / np.sum(vec) > 0:
         eigen = magnitude
     else:
         eigen = -magnitude
 
     return eigen, vec
 
+
 # each column of vs is an eigenvector
 # It's a prerequisite that all eigenvalues are already nonnegative
 # This requirement is guaranteed after nowe_factorize()
 def lowrank_fact(VV, N0):
-    timer1 = Timer( "lowrank_fact()" )
+    timer1 = Timer("lowrank_fact()")
 
     es, vs = np.linalg.eigh(VV)
     es = es[-N0:]
-    vs = vs[ :, -N0: ]
-    E_sqrt = np.diag( np.sqrt(es) )
+    vs = vs[:, -N0:]
+    E_sqrt = np.diag(np.sqrt(es))
     V = vs.dot(E_sqrt)
     VV = V.dot(V.T)
 
-    return V, VV, vs,es
+    return V, VV, vs, es
 
-def save_embeddings( filename, vocab, V, matrixName ):
+
+def save_embeddings(filename, vocab, V, matrixName):
     FMAT = open(filename, "wb")
-    print "Save matrix '%s' into %s" %(matrixName, filename)
+    print "Save matrix '%s' into %s" % (matrixName, filename)
 
     vocab_size = len(vocab)
     N = len(V[0])
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
-    FMAT.write( "%d %d\n" %(vocab_size, N) )
+    FMAT.write("%d %d\n" % (vocab_size, N))
     for i in xrange(vocab_size):
         line = vocab[i]
         for j in xrange(N):
-            line += " %.5f" %V[i,j]
-        FMAT.write("%s\n" %line)
+            line += " %.5f" % V[i, j]
+        FMAT.write("%s\n" % line)
 
     FMAT.close()
 
-def save_matrix_as_text( filename, rowTypeName, T, *extraCols, **kwargs ):
+
+def save_matrix_as_text(filename, rowTypeName, T, *extraCols, **kwargs):
     FMAT = open(filename, "wb")
-    print "Save %s matrix into '%s'" %(rowTypeName, filename)
+    print "Save %s matrix into '%s'" % (rowTypeName, filename)
     colSep = kwargs.get("colSep", " ")
-    
+
     K, N = T.shape
 
-    #pdb.set_trace()
+    # pdb.set_trace()
     extraColNum = len(extraCols)
-    
-    FMAT.write( "%d %d %d\n" %( K, N, extraColNum ) )
+
+    FMAT.write("%d %d %d\n" % (K, N, extraColNum))
     for i in xrange(K):
         # if rowNames is provided, print the corresponding row name at the beginning of each line
         line = ""
         for j in xrange(extraColNum):
-            col = str( extraCols[j][i] )
+            col = str(extraCols[j][i])
             line += col + colSep
-        line += "%.5f" %T[i,0]
-            
+        line += "%.5f" % T[i, 0]
+
         for j in xrange(1, N):
-            line += " %.5f" %T[i,j]
-        FMAT.write("%s\n" %line)
+            line += " %.5f" % T[i, j]
+        FMAT.write("%s\n" % line)
 
     FMAT.close()
-    print "%d rows of %s(s) (%d-d each) saved" %( K, rowTypeName, N )
+    print "%d rows of %s(s) (%d-d each) saved" % (K, rowTypeName, N)
 
-def load_matrix_from_text( filename, rowTypeName, colSep=" " ):
+
+def load_matrix_from_text(filename, rowTypeName, colSep=" "):
     FMAT = open(filename)
-    print "Load %s matrix from '%s'" %(rowTypeName, filename)
+    print "Load %s matrix from '%s'" % (rowTypeName, filename)
     precision = np.float64
     extraCols = []
     extraColNum = 0
     lineno = 0
-    
+
     try:
         header = FMAT.readline()
         rowID = 0
         lineno += 1
-        match = re.match( r"(\d+) (\d+) (\d+)", header)
+        match = re.match(r"(\d+) (\d+) (\d+)", header)
         if not match:
             raise ValueError(lineno, header)
 
         K = int(match.group(1))
         N = int(match.group(2))
         extraColNum = int(match.group(3))
-        print "'%s': %dx%d, %d extra columns" %( filename, K, N, extraColNum )
-        
+        print "'%s': %dx%d, %d extra columns" % (filename, K, N, extraColNum)
+
         for i in xrange(extraColNum):
             extraCols.append([])
-        
-        M = np.zeros( (K, N), dtype=precision )
+
+        M = np.zeros((K, N), dtype=precision)
 
         for line in FMAT:
             line = line.strip()
             # end of file
             if not line:
                 if rowID != K:
-                    raise ValueError( lineno, "%d rows declared in header, but %d read" %( K, rowID ) )
+                    raise ValueError(lineno, "%d rows declared in header, but %d read" % (K, rowID))
                 break
 
             row_extraCols = []
             fields = line.split(colSep)
             for i in xrange(extraColNum):
                 extraCols[i].append(fields[i])
-                
+
             matFields = fields[extraColNum:]
             # matrix values are always concatenated by " "
             # if colSep is not " ", matrix values should take one column
             if colSep != " ":
                 if len(matFields) > 1:
-                    raise ValueError( lineno, "%d columns of matrix values when colSep is not space" %( len(matFields) ) )
+                    raise ValueError(lineno, "%d columns of matrix values when colSep is not space" % (len(matFields)))
                 else:
                     matFields = matFields[0].split(" ")
-                    
-            M[rowID] = np.array( [ float(x) for x in matFields ], dtype=precision )
+
+            M[rowID] = np.array([float(x) for x in matFields], dtype=precision)
             rowID += 1
-                
+
     except ValueError, e:
-        if len( e.args ) == 2:
-            warning( "Unknown line %d:\n%s\n" %( e.args[0], e.args[1] ) )
+        if len(e.args) == 2:
+            warning("Unknown line %d:\n%s\n" % (e.args[0], e.args[1]))
         else:
             exc_type, exc_obj, tb = sys.exc_info()
-            warning( "Source line %d - %s on File line %d:\n%s\n" %( tb.tb_lineno, e, lineno, line ) )
+            warning("Source line %d - %s on File line %d:\n%s\n" % (tb.tb_lineno, e, lineno, line))
         exit(2)
 
     FMAT.close()
-    warning( "%dx%d %s matrix loaded from '%s'\n" %(K, N, rowTypeName, filename) )
+    warning("%dx%d %s matrix loaded from '%s'\n" % (K, N, rowTypeName, filename))
 
     if len(extraCols) == 0:
         return M
     else:
         return M, extraCols
-        
+
+
 # load top maxWordCount words, plus extraWords
-def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=False ):
+def load_embeddings(filename, maxWordCount=-1, extraWords={}, record_skipped=False):
     FMAT = open(filename)
-    warning( "Load embedding text file '%s'\n" %(filename) )
-    
+    warning("Load embedding text file '%s'\n" % (filename))
+
     V = []
     word2id = {}
     skippedWords = {}
@@ -409,7 +429,7 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
     try:
         header = FMAT.readline()
         lineno = 1
-        match = re.match( r"(\d+) (\d+)", header)
+        match = re.match(r"(\d+) (\d+)", header)
         if not match:
             raise ValueError(lineno, header)
 
@@ -421,14 +441,14 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
         else:
             maxWordCount = vocab_size
 
-        warning( "Will load embeddings of %d words" %maxWordCount )
+        warning("Will load embeddings of %d words" % maxWordCount)
         if len(extraWords) > 0:
-            warning( ", plus %d extra words" %(len(extraWords)) )
+            warning(", plus %d extra words" % (len(extraWords)))
         warning("\n")
 
         # maxWordCount + len(extraWords) is the maximum num of words.
         # V may contain extra rows that will be removed at the end
-        V = np.zeros( (maxWordCount + len(extraWords), N), dtype=precision )
+        V = np.zeros((maxWordCount + len(extraWords), N), dtype=precision)
         wid = 0
         orig_wid = 0
 
@@ -438,12 +458,12 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
             # end of file
             if not line:
                 if orig_wid != vocab_size:
-                    raise ValueError( lineno, "%d words declared in header, but %d read" %( vocab_size, orig_wid ) )
+                    raise ValueError(lineno, "%d words declared in header, but %d read" % (vocab_size, orig_wid))
                 break
 
             fields = line.split(' ')
             # remove empty fields
-            fields = filter( lambda x: x, fields )
+            fields = filter(lambda x: x, fields)
             w = fields[0]
 
             if w in extraWords:
@@ -456,33 +476,33 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
                 skippedWords[w] = 1
             else:
                 break
-							
+
             orig_wid += 1
 
             if isInterested:
-                V[wid] = np.array( [ float(x) for x in fields[1:] ], dtype=precision )
+                V[wid] = np.array([float(x) for x in fields[1:]], dtype=precision)
                 word2id[w] = wid
                 vocab.append(w)
                 wid += 1
 
             if orig_wid % 1000 == 0:
-                warning( "\r%d    %d    %d    \r" %( orig_wid, wid, len(extraWords) ) )
+                warning("\r%d    %d    %d    \r" % (orig_wid, wid, len(extraWords)))
 
             if orig_wid > vocab_size:
-                raise ValueError( "%d words declared in header, but more are read" %(vocab_size) )
+                raise ValueError("%d words declared in header, but more are read" % (vocab_size))
 
     except ValueError, e:
-        if len( e.args ) == 2:
-            warning( "Unknown line %d:\n%s\n" %( e.args[0], e.args[1] ) )
+        if len(e.args) == 2:
+            warning("Unknown line %d:\n%s\n" % (e.args[0], e.args[1]))
         else:
             exc_type, exc_obj, tb = sys.exc_info()
-            warning( "Source line %d - %s on File line %d:\n%s\n" %( tb.tb_lineno, e, lineno, line ) )
+            warning("Source line %d - %s on File line %d:\n%s\n" % (tb.tb_lineno, e, lineno, line))
         raise e
 
     FMAT.close()
-    warning( "\n%d embeddings read, %d kept\n" %(orig_wid, wid) )
+    warning("\n%d embeddings read, %d kept\n" % (orig_wid, wid))
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
     if wid < len(V):
         V = V[:wid]
@@ -490,15 +510,16 @@ def load_embeddings( filename, maxWordCount=-1, extraWords={}, record_skipped=Fa
     # V: embeddings, vocab: array of words, word2id: dict of word to index in V
     return V, vocab, word2id, skippedWords
 
+
 # borrowed from gensim.models.word2vec
 # load top maxWordCount words, plus extraWords
-def load_embeddings_bin( filename, maxWordCount=-1, extraWords={}, record_skipped=False ):
-    print "Load embedding binary file '%s'" %(filename)
+def load_embeddings_bin(filename, maxWordCount=-1, extraWords={}, record_skipped=False):
+    print "Load embedding binary file '%s'" % (filename)
     word2id = {}
     skippedWords = {}
     vocab = []
-    #origWord2id = {}
-    #origVocab = []
+    # origWord2id = {}
+    # origVocab = []
     precision = np.float32
 
     with open(filename, "rb") as fin:
@@ -510,19 +531,19 @@ def load_embeddings_bin( filename, maxWordCount=-1, extraWords={}, record_skippe
         else:
             maxWordCount = vocab_size
 
-        print "Will load embeddings of %d words" %maxWordCount,
+        print "Will load embeddings of %d words" % maxWordCount,
         if len(extraWords) > 0:
-            print "\b, plus %d extra words" %(len(extraWords))
+            print "\b, plus %d extra words" % (len(extraWords))
         else:
             print
 
         # maxWordCount + len(extraWords) is the maximum num of words.
         # V may contain extra rows that will be removed at the end
-        V = np.zeros( (maxWordCount + len(extraWords), N), dtype=precision )
+        V = np.zeros((maxWordCount + len(extraWords), N), dtype=precision)
 
         full_binvec_len = np.dtype(precision).itemsize * N
 
-        #pdb.set_trace()
+        # pdb.set_trace()
         orig_wid = 0
         wid = 0
         while True:
@@ -543,8 +564,8 @@ def load_embeddings_bin( filename, maxWordCount=-1, extraWords={}, record_skippe
                 if word2 not in word2id:
                     word = word2
 
-            #origWord2id[word] = orig_wid
-            #origVocab.append(word)
+            # origWord2id[word] = orig_wid
+            # origVocab.append(word)
 
             if w in extraWords:
                 del extraWords[w]
@@ -562,57 +583,59 @@ def load_embeddings_bin( filename, maxWordCount=-1, extraWords={}, record_skippe
             if isInterested:
                 word2id[word] = wid
                 vocab.append(word)
-                V[wid] = np.fromstring( fin.read(full_binvec_len), dtype=precision )
+                V[wid] = np.fromstring(fin.read(full_binvec_len), dtype=precision)
                 wid += 1
             else:
                 fin.read(full_binvec_len)
 
             if orig_wid % 1000 == 0:
-                print "\r%d    %d    %d    \r" %( orig_wid, wid, len(extraWords) ),
+                print "\r%d    %d    %d    \r" % (orig_wid, wid, len(extraWords)),
 
             if orig_wid > vocab_size:
-                raise ValueError( "%d words declared in header, but more are read" %(vocab_size) )
+                raise ValueError("%d words declared in header, but more are read" % (vocab_size))
 
     if wid < len(V):
         V = V[:wid]
-    print "\n%d embeddings read, %d embeddings kept" %(orig_wid, wid)
+    print "\n%d embeddings read, %d embeddings kept" % (orig_wid, wid)
 
     # V: embeddings, vocab: array of words, word2id: dict of word to index in V
     return V, vocab, word2id, skippedWords
+
 
 # load Hyperwords embeddings
 def load_embeddings_hyper(modelPath, vecType):
     sys.path.append('./hyperwords/hyperwords')
     from representations.explicit import PositiveExplicit
     from representations.embedding import SVDEmbedding
-    print "Load Hyperwords(%s) embedding file '%s'" %(vecType, modelPath)
+    print "Load Hyperwords(%s) embedding file '%s'" % (vecType, modelPath)
     if vecType == 'PPMI':
         base = PositiveExplicit
     else:
         base = SVDEmbedding
-        
+
     class HyperEmbed(base):
         def __contains__(self, w):
             return w in self.wi
-    
+
     model = HyperEmbed(modelPath, True)
 
     print "Done."
     return model
-    
+
+
 # load residuals
 # the dict word2id is to ensure the same word is mapped to the same id as in the embedding file
 # in other words, the embedding file and residual file had to be generated in the same batch
-def load_residuals( filename, word2id={}, maxRowCount=-1, maxColCount=-1 ):
+def load_residuals(filename, word2id={}, maxRowCount=-1, maxColCount=-1):
     FMAT = open(filename)
-    warning( "Load residual file '%s'\n" %(filename) )
-    
+    warning("Load residual file '%s'\n" % (filename))
+
     precision = np.float32
 
     try:
         header = FMAT.readline()
         lineno = 1
-        match = re.match( r"(\d+) (\d+)", header)
+        match = re.match(r"(\d+) (\d+)", header)
         if not match:
             raise ValueError(lineno, header)
 
@@ -629,9 +652,9 @@ def load_residuals( filename, word2id={}, maxRowCount=-1, maxColCount=-1 ):
         else:
             maxColCount = vocab_size2
 
-        warning( "Will load residuals of %dx%d words" %( maxRowCount, maxColCount ) )
+        warning("Will load residuals of %dx%d words" % (maxRowCount, maxColCount))
 
-        A = np.zeros( (maxRowCount, maxColCount), dtype=precision )
+        A = np.zeros((maxRowCount, maxColCount), dtype=precision)
 
         for line in FMAT:
             lineno += 1
@@ -639,42 +662,43 @@ def load_residuals( filename, word2id={}, maxRowCount=-1, maxColCount=-1 ):
             # end of file
             if not line:
                 if lineno != vocab_size:
-                    raise ValueError( lineno, "%d rows declared in header, but %d read" %( vocab_size, lineno ) )
+                    raise ValueError(lineno, "%d rows declared in header, but %d read" % (vocab_size, lineno))
                 break
 
             fields = line.split(' ')
-            fields = filter( lambda x: x, fields )
+            fields = filter(lambda x: x, fields)
             w = fields[0]
 
             if len(word2id) > 0:
                 if w not in word2id or word2id[w] != lineno - 1:
                     raise ValueError("ID of '%s' is inconsistent between '%s' and the loaded embeddings. "
-                                     "Make sure they were generated in the same batch" %(w, filename) )
-            A[ lineno - 1 ] = np.array( [ float(x) for x in fields[1:] ], dtype=precision )
+                                     "Make sure they were generated in the same batch" % (w, filename))
+            A[lineno - 1] = np.array([float(x) for x in fields[1:]], dtype=precision)
 
             if lineno % 1000 == 0:
-                warning( "\r%d\r" %lineno )
+                warning("\r%d\r" % lineno)
 
             if lineno >= vocab_size:
-                raise ValueError( "%d words declared in header, but more are read" %(vocab_size) )
+                raise ValueError("%d words declared in header, but more are read" % (vocab_size))
 
     except ValueError, e:
-        if len( e.args ) == 2:
-            warning( "Unknown line %d:\n%s\n" %( e.args[0], e.args[1] ) )
+        if len(e.args) == 2:
+            warning("Unknown line %d:\n%s\n" % (e.args[0], e.args[1]))
         else:
             exc_type, exc_obj, tb = sys.exc_info()
-            warning( "Source line %d - %s on File line %d:\n%s\n" %( tb.tb_lineno, e, lineno, line ) )
+            warning("Source line %d - %s on File line %d:\n%s\n" % (tb.tb_lineno, e, lineno, line))
         exit(2)
 
     FMAT.close()
-    warning( "\n%d rows read, each row %d words\n" %(lineno, vocab_size2) )
+    warning("\n%d rows read, each row %d words\n" % (lineno, vocab_size2))
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
     return A
 
-def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
-    print "Loading bigram file '%s':" %bigram_filename
+
+def loadBigramFile(bigram_filename, topWordNum, extraWords, kappa=0.01):
+    print "Loading bigram file '%s':" % bigram_filename
     BIGRAM = open(bigram_filename)
     lineno = 0
     vocab = []
@@ -686,17 +710,17 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
     # After smoothing, entries in b_i are always positive, thus logb_i is fine
     # do_smoothing=True
 
-    timer1 = Timer( "loadBigramFile()" )
+    timer1 = Timer("loadBigramFile()")
 
     try:
         header = BIGRAM.readline()
         lineno += 1
-        match = re.match( r"#\s+(\d+) words,\s+\d+ occurrences", header )
+        match = re.match(r"#\s+(\d+) words,\s+\d+ occurrences", header)
         if not match:
             raise ValueError(lineno, header)
 
         wholeVocabSize = int(match.group(1))
-        print "Totally %d words"  %wholeVocabSize
+        print "Totally %d words" % wholeVocabSize
         # If topWordNum < 0, read all focus words
         if topWordNum < 0:
             topWordNum = wholeVocabSize
@@ -706,7 +730,7 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
         header = BIGRAM.readline()
         lineno += 2
 
-        match = re.match( r"#\s+(\d+) bigram occurrences", header)
+        match = re.match(r"#\s+(\d+) bigram occurrences", header)
         if not match:
             raise ValueError(lineno, header)
 
@@ -744,10 +768,11 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
 
         # Usually these two should match, unless the bigram file is corrupted
         if wc != wholeVocabSize:
-            raise ValueError( "%d words declared in header, but %d seen" %(wholeVocabSize, wc) )
+            raise ValueError("%d words declared in header, but %d seen" % (wholeVocabSize, wc))
 
         vocab_size = len(vocab)
-        print "%d words seen, top %d & %d extra to keep. %d kept" %( wholeVocabSize, topWordNum, len(extraWords), vocab_size )
+        print "%d words seen, top %d & %d extra to keep. %d kept" % (
+        wholeVocabSize, topWordNum, len(extraWords), vocab_size)
 
         log_u = np.array(log_u)
         u = np.exp(log_u)
@@ -758,9 +783,9 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
 
         k_u = kappa * u
         # original B, without smoothing
-        #B = []
-        G = np.zeros( (vocab_size, vocab_size), dtype=np.float32 )
-        F = np.zeros( (vocab_size, vocab_size), dtype=np.float32 )
+        # B = []
+        G = np.zeros((vocab_size, vocab_size), dtype=np.float32)
+        F = np.zeros((vocab_size, vocab_size), dtype=np.float32)
 
         header = BIGRAM.readline()
         lineno += 1
@@ -775,7 +800,7 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
         lineno += 1
         contextWID = 0
 
-        #pdb.set_trace()
+        # pdb.set_trace()
 
         while True:
             line = line.strip()
@@ -794,7 +819,7 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
             neighborTotalOccur = float(neighborTotalOccur)
 
             if orig_wid % 200 == 0:
-                print "\r%d\r" %orig_wid,
+                print "\r%d\r" % orig_wid,
 
             if orig_wid <= topWordNum or w in extraWords:
                 recordCurrWord = True
@@ -862,17 +887,17 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
                 """
 
                 x_i /= neighborTotalOccur
-                b_i = x_i *( 1 - kappa ) + k_u
+                b_i = x_i * (1 - kappa) + k_u
                 g_i = np.log(b_i) - log_u
                 G[contextWID] = g_i
                 contextWID += 1
 
     except ValueError, e:
-        if len( e.args ) == 2:
-            print "Unknown line %d:\n%s" %( e.args[0], e.args[1] )
+        if len(e.args) == 2:
+            print "Unknown line %d:\n%s" % (e.args[0], e.args[1])
         else:
             exc_type, exc_obj, tb = sys.exc_info()
-            print "Source line %d: %s" %(tb.tb_lineno, e)
+            print "Source line %d: %s" % (tb.tb_lineno, e)
             if stage == 1:
                 print header
             else:
@@ -884,14 +909,15 @@ def loadBigramFile( bigram_filename, topWordNum, extraWords, kappa=0.01 ):
 
     return vocab, word2id, G, F, u
 
+
 # If noncore_size == -1, all noncore words are loaded into the upperright and lowerleft blocks
 # word2preID_core are the IDs of words in the pretrained embedding file
 # If vocab_core and word2preID_core are specified, core words are limited to words in them
 # Otherwise the top core_size words are core words
-def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2preID_core={}, prewords_skipped={}, kappa=0.02 ):
-
+def loadBigramFileInBlock(bigram_filename, core_size, noncore_size=-1, word2preID_core={}, prewords_skipped={},
+                          kappa=0.02):
     # corewords_specified means the list of core words are specified in word2preID_core
-    
+
     if len(word2preID_core) > 0:
         corewords_specified = True
         # recordUpperleft is always the negation of corewords_specified. But sometimes is semantically clearer
@@ -905,9 +931,9 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
         # if core words are not specified, core_size should always > 0,
         # otherwise I don't know how many words are core words
         if core_size < 0:
-            raise ValueError( "Argument error: core_size = %d < 0 when word2preID_core is not specified" %core_size )
+            raise ValueError("Argument error: core_size = %d < 0 when word2preID_core is not specified" % core_size)
         if len(prewords_skipped) > 0:
-            raise ValueError( "Argument error: word2preID_core is empty but prewords_skipped is not" )
+            raise ValueError("Argument error: word2preID_core is empty but prewords_skipped is not")
 
     # if corewords_specified, return a list of coreword IDs in the pretrained mapping
     # otherwise, return empty list (just for return value conformity)
@@ -916,9 +942,9 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
     if not recordUpperleft:
         # do not record G11/F11
         print "Loading bigram file '%s' into 2 blocks. Will skip %d words" \
-                                    %( bigram_filename, len(prewords_skipped) )
+              % (bigram_filename, len(prewords_skipped))
     else:
-        print "Loading bigram file '%s' into 3 blocks." %bigram_filename
+        print "Loading bigram file '%s' into 3 blocks." % bigram_filename
 
     BIGRAM = open(bigram_filename)
 
@@ -939,33 +965,35 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
     # do_smoothing must be True. Otherwise some entries in logb_i will be log of 0
     # After smoothing, entries in b_i are always positive, thus logb_i is fine
     # To reduce code modifications, this flag is not removed
-    timer1 = Timer( "loadBigramFileInBlock()" )
+    timer1 = Timer("loadBigramFileInBlock()")
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
     try:
         header = BIGRAM.readline()
         lineno += 1
-        match = re.match( r"#\s+(\d+) words,\s+\d+ occurrences", header )
+        match = re.match(r"#\s+(\d+) words,\s+\d+ occurrences", header)
         if not match:
             raise ValueError(lineno, header)
 
         wholeVocabSize = int(match.group(1))
-        print "Totally %d words"  %wholeVocabSize
+        print "Totally %d words" % wholeVocabSize
 
         if core_size >= wholeVocabSize:
-            raise ValueError( "%d core words, but vocabulary only declares %d words in header" %( core_size, wholeVocabSize ) )
+            raise ValueError(
+                "%d core words, but vocabulary only declares %d words in header" % (core_size, wholeVocabSize))
 
         # at least consider one noncore word
-        min_vocab_size = core_size + max( noncore_size, 1 )
+        min_vocab_size = core_size + max(noncore_size, 1)
         if min_vocab_size > wholeVocabSize:
-            warning( "%d (%d + %d) words demanded, but only %d declared in header" %( min_vocab_size, core_size,
-                                                                                             max( noncore_size, 1 ), wholeVocabSize) )
+            warning("%d (%d + %d) words demanded, but only %d declared in header" % (min_vocab_size, core_size,
+                                                                                     max(noncore_size, 1),
+                                                                                     wholeVocabSize))
             min_vocab_size = wholeVocabSize
             noncore_size2 = wholeVocabSize - core_size
-            warning( "Noncore words adjusted from %d to %d" %( noncore_size, noncore_size2 ) )
+            warning("Noncore words adjusted from %d to %d" % (noncore_size, noncore_size2))
             noncore_size = noncore_size2
-            
+
         # all the words are included in the vocab_all
         # in this case, vocab_size needs to be initialized
         # otherwise corewords_specified, noncore_size & vocab_size will be computed later, 
@@ -984,7 +1012,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
         header = BIGRAM.readline()
         lineno += 2
 
-        match = re.match( r"#\s+(\d+) bigram occurrences", header )
+        match = re.match(r"#\s+(\d+) bigram occurrences", header)
         if not match:
             raise ValueError(lineno, header)
 
@@ -1028,7 +1056,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
                     if w in word2preID_core:
                         word2id_core[w] = core_wc
                         core_wc += 1
-                        coreword_preIDs.append( word2preID_core[w] )
+                        coreword_preIDs.append(word2preID_core[w])
                         log_u0_core.append(float(log_ui))
                         vocab_core.append(w)
 
@@ -1037,12 +1065,12 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
 
                     elif w in prewords_skipped:
                         skipped_wc += 1
-                    elif noncore_size < 0 or noncore_wc < noncore_size :
+                    elif noncore_size < 0 or noncore_wc < noncore_size:
                         word2id_noncore[w] = noncore_wc
                         noncore_wc += 1
                         log_u0_noncore.append(float(log_ui))
                         vocab_noncore.append(w)
-                        
+
                     word2origID_all[w] = wc
                     wc += 1
 
@@ -1065,7 +1093,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
             # some core words may be missing from the bigram file. So recompute core_size
             # If these two don't match, then some specified core words don't appear in the unigram list
             if core_size != core_wc:
-                print "WARN: %d core words demanded, but only %d read" %(core_size, core_wc)
+                print "WARN: %d core words demanded, but only %d read" % (core_size, core_wc)
                 core_size = core_wc
 
             noncore_size = noncore_wc
@@ -1085,11 +1113,11 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
             max_core_origID = core_size
             word2origID_all = word2id_all
             if vocab_size > 0 and wc < vocab_size:
-                print "WARN: %d words demanded, but only %d read" %(vocab_size, wc)
+                print "WARN: %d words demanded, but only %d read" % (vocab_size, wc)
                 vocab_size = wc
 
         print "%d words in file, top %d to read into vocab (%d core, %d noncore), %d skipped" \
-               %( wholeVocabSize, vocab_size, core_size, noncore_size, skipped_wc )
+              % (wholeVocabSize, vocab_size, core_size, noncore_size, skipped_wc)
 
         # unigram prob & logprob of all the words
         log_u0 = np.array(log_u0)
@@ -1098,11 +1126,11 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
         u0 /= np.sum(u0)
 
         log_u0 = np.log(u0)
-        log_u_core    = log_u0[:core_size]
+        log_u_core = log_u0[:core_size]
         log_u_noncore = log_u0[core_size:]
 
         k_u0 = kappa * u0
-        k_u_core    = k_u0[:core_size]
+        k_u_core = k_u0[:core_size]
         k_u_noncore = k_u0[core_size:]
 
         ### Reading bigrams begins ###
@@ -1122,20 +1150,20 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
 
         # new G12, F12
         # G12/F12: the upperright block
-        G12 = np.zeros( (core_size, noncore_size), dtype=np.float32 )
-        F12 = np.zeros( (core_size, noncore_size), dtype=np.float32 )
+        G12 = np.zeros((core_size, noncore_size), dtype=np.float32)
+        F12 = np.zeros((core_size, noncore_size), dtype=np.float32)
         # new G21, F21
         # G21/F21: the lowerleft block
         # the lower right block (biggest) G22/F22 is ignored
-        G21 = np.zeros( (noncore_size, core_size), dtype=np.float32 )
-        F21 = np.zeros( (noncore_size, core_size), dtype=np.float32 )
+        G21 = np.zeros((noncore_size, core_size), dtype=np.float32)
+        F21 = np.zeros((noncore_size, core_size), dtype=np.float32)
 
         # when reading core words, keep the upperleft block, the whole vocab
         if recordUpperleft:
             # new G11, F11
             # G11/F11: the upperleft block
-            G11 = np.zeros( (core_size, core_size), dtype=np.float32 )
-            F11 = np.zeros( (core_size, core_size), dtype=np.float32 )
+            G11 = np.zeros((core_size, core_size), dtype=np.float32)
+            F11 = np.zeros((core_size, core_size), dtype=np.float32)
             rowLength = vocab_size
             k_u = k_u0
             log_u = log_u0
@@ -1153,7 +1181,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
         # So pretend the previous nonexistent word is a core word
         lastContextIsCore = True
 
-        #pdb.set_trace()
+        # pdb.set_trace()
         core_readcount = 0
         noncore_readcount = 0
         coreMsg_printed = False
@@ -1252,7 +1280,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
                     # so check here to avoid setting skipRemainingNeighbors
                     if w2 in prewords_skipped:
                         continue
-                        
+
                     # when meeting the first focus word out of vocab_all, all following focus words are not in vocab_all
                     # since neighbors are sorted ascendingly by ID
                     # So they are skipped to speed up reading
@@ -1289,7 +1317,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
 
             if not saveCurrRow:
                 continue
-                
+
             # Question: whether set F to the original freq or smoothed freq (assign F before or after smoothing)?
             if contextIsCore:
                 if recordUpperleft:
@@ -1313,7 +1341,7 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
             """
 
             x_i /= neighborTotalOccur
-            b_i = x_i * ( 1 - kappa ) + k_u
+            b_i = x_i * (1 - kappa) + k_u
             g_i = np.log(b_i) - log_u
 
             if contextIsCore:
@@ -1333,17 +1361,17 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
                 noncore_readcount += 1
 
             if orig_wid % 200 == 0:
-                print "\r%d (%d core, %d noncore)\r" %( orig_wid, core_readcount, noncore_readcount ),
+                print "\r%d (%d core, %d noncore)\r" % (orig_wid, core_readcount, noncore_readcount),
             if not coreMsg_printed and core_readcount == core_size:
-                print "\n%d core words are all read." %(core_size)
+                print "\n%d core words are all read." % (core_size)
                 coreMsg_printed = True
 
     except ValueError, e:
-        if len( e.args ) == 2:
-            print "Unknown line %d:\n%s" %( e.args[0], e.args[1] )
+        if len(e.args) == 2:
+            print "Unknown line %d:\n%s" % (e.args[0], e.args[1])
         else:
             exc_type, exc_obj, tb = sys.exc_info()
-            print "Source line %d: %s" %(tb.tb_lineno, e)
+            print "Source line %d: %s" % (tb.tb_lineno, e)
             if stage == 1:
                 print header
             else:
@@ -1354,13 +1382,14 @@ def loadBigramFileInBlock( bigram_filename, core_size, noncore_size=-1, word2pre
     BIGRAM.close()
 
     if recordUpperleft:
-        G = [ G11, G12, G21 ]
-        F = [ F11, F12, F21 ]
+        G = [G11, G12, G21]
+        F = [F11, F12, F21]
     else:
-        G = [ G12, G21 ]
-        F = [ F12, F21 ]
+        G = [G12, G21]
+        F = [F12, F21]
 
     return vocab_all, word2id_all, word2id_core, coreword_preIDs, G, F, u0
+
 
 def loadUnigramFile(filename):
     UNI = open(filename)
@@ -1371,12 +1400,13 @@ def loadUnigramFile(filename):
         if line[0] == '#':
             continue
         fields = line.split("\t")
-                             # id, freq, prob
-        vocab_dict[ fields[0] ] = ( wid, int(fields[1]), np.exp(float(fields[2])) )
+        # id, freq, prob
+        vocab_dict[fields[0]] = (wid, int(fields[1]), np.exp(float(fields[2])))
         wid += 1
 
-    print "%d words loaded from unigram file %s" %(wid, filename)
+    print "%d words loaded from unigram file %s" % (wid, filename)
     return vocab_dict
+
 
 def loadExtraWordFile(filename):
     extraWords = {}
@@ -1385,8 +1415,9 @@ def loadExtraWordFile(filename):
             w, wid = line.strip().split('\t')
             extraWords[w] = 1
 
-    print "%d words loaded from extra word file %s" %( len(extraWords), filename)
+    print "%d words loaded from extra word file %s" % (len(extraWords), filename)
     return extraWords
+
 
 # borrowed from Omer Levy's code
 # extraArgs is not used, only for API conformity
@@ -1396,8 +1427,9 @@ def loadSimTestset(path, extraArgs=None):
     with open(path) as f:
         for line in f:
             x, y, sim = line.strip().lower().split()
-            testset.append( [ x, y, float(sim) ] )
+            testset.append([x, y, float(sim)])
     return testset
+
 
 def loadAnaTestset(path, extraArgs=None):
     testset = []
@@ -1416,12 +1448,13 @@ def loadAnaTestset(path, extraArgs=None):
                 possessive += 1
                 continue
             a, a2, b, b2 = line.strip().lower().split()
-            testset.append( [ a, a2, b, b2 ] )
+            testset.append([a, a2, b, b2])
 
     if skipPossessive:
-        print "%d possessive pairs skipped" %possessive
+        print "%d possessive pairs skipped" % possessive
 
     return testset
+
 
 # available loaders: loadSimTestset, loadAnaTestset
 def loadTestsets(loader, testsetDir, testsetNames, extraArgs=None):
@@ -1436,34 +1469,35 @@ def loadTestsets(loader, testsetDir, testsetNames, extraArgs=None):
 
     testsets = []
     if len(testsetNames) == 0:
-        testsetNames = glob.glob( testsetDir + '*.txt' )
+        testsetNames = glob.glob(testsetDir + '*.txt')
         if len(testsetNames) == 0:
             print "No testset ended with '.txt' is found in " + testsetDir
             sys.exit(2)
-        testsetNames = map( lambda x: os.path.basename(x)[:-4], testsetNames )
+        testsetNames = map(lambda x: os.path.basename(x)[:-4], testsetNames)
 
     for testsetName in testsetNames:
-        testset = loader( testsetDir + testsetName + ".txt", extraArgs )
+        testset = loader(testsetDir + testsetName + ".txt", extraArgs)
         testsets.append(testset)
 
     return testsets
+
 
 # "model" in methods below has to support two methods:
 # model[w]: return the embedding of w
 # model.similarity(x, y): return the cosine similarity between the embeddings of x and y
 # realb2 is passed in only for debugging purpose
-def predict_ana( model, a, a2, b, realb2 ):
-    questWordIndices = [ model.word2id[x] for x in (a,a2,b) ]
+def predict_ana(model, a, a2, b, realb2):
+    questWordIndices = [model.word2id[x] for x in (a, a2, b)]
     # b2 is effectively iterating through the vocab. The row is all the cosine values
     b2a2 = model.sim_row(a2)
-    b2a  = model.sim_row(a)
-    b2b  = model.sim_row(b)
+    b2a = model.sim_row(a)
+    b2b = model.sim_row(b)
     addsims = b2a2 - b2a + b2b
 
     addsims[questWordIndices] = -10000
 
     iadd = np.nanargmax(addsims)
-    b2add  = model.vocab[iadd]
+    b2add = model.vocab[iadd]
 
     # For debugging purposes
     ia = model.word2id[a]
@@ -1472,12 +1506,13 @@ def predict_ana( model, a, a2, b, realb2 ):
     ib2 = model.word2id[realb2]
     realaddsim = addsims[ib2]
 
-    mulsims = ( b2a2 + 1 ) * ( b2b + 1 ) / ( b2a + 1.001 )
+    mulsims = (b2a2 + 1) * (b2b + 1) / (b2a + 1.001)
     mulsims[questWordIndices] = -10000
     imul = np.nanargmax(mulsims)
-    b2mul  = model.vocab[imul]
+    b2mul = model.vocab[imul]
 
     return b2add, b2mul
+
 
 ''' baa2 = model[b] - model[a] + model[a2]
     baa2 = baa2/normF(baa2)
@@ -1514,9 +1549,10 @@ def predict_ana( model, a, a2, b, realb2 ):
     return b2add, b2mul, b21, b22
     '''
 
+
 # vocab_dict is a vocabulary dict, usually bigger than model.vocab, loaded from a unigram file
 # its purpose is to find absent words in the model
-def evaluate_sim(model, testsets, testsetNames, getAbsentWords=False, vocab_dict=None, cutPoint=-1 ):
+def evaluate_sim(model, testsets, testsetNames, getAbsentWords=False, vocab_dict=None, cutPoint=-1):
     # words in absentModelID2Word and words in absentVocabWords don't overlap
 
     # words in the vocab but not in the model
@@ -1528,7 +1564,7 @@ def evaluate_sim(model, testsets, testsetNames, getAbsentWords=False, vocab_dict
     # a set of spearman coeffs, in the same order as in testsets
     spearmanCoeff = []
 
-    for i,testset in enumerate(testsets):
+    for i, testset in enumerate(testsets):
         modelResults = []
         groundtruth = []
 
@@ -1554,19 +1590,20 @@ def evaluate_sim(model, testsets, testsetNames, getAbsentWords=False, vocab_dict
                 else:
                     absentVocabWords[y] = 1
             else:
-                modelResults.append( model.similarity(x, y) )
+                modelResults.append(model.similarity(x, y))
                 groundtruth.append(sim)
-                #print "%s %s: %.3f %.3f" %(x, y, modelResults[-1], sim)
-        print "%s: %d test pairs, %d valid" %( testsetNames[i], len(testset), len(modelResults) ),
-        spearmanCoeff.append( spearmanr(modelResults, groundtruth)[0] )
-        print ", %.5f" %spearmanCoeff[-1]
+                # print "%s %s: %.3f %.3f" %(x, y, modelResults[-1], sim)
+        print "%s: %d test pairs, %d valid" % (testsetNames[i], len(testset), len(modelResults)),
+        spearmanCoeff.append(spearmanr(modelResults, groundtruth)[0])
+        print ", %.5f" % spearmanCoeff[-1]
 
     # return hashes directly, for ease of merge
     return spearmanCoeff, absentModelID2Word, absentVocabWords, cutVocabWords
 
+
 # vocab_dict is a vocabulary dict, usually bigger than model.vocab, loaded from a unigram file
 # its purpose is to find absent words in the model
-def evaluate_ana(model, testsets, testsetNames, getAbsentWords=False, vocab_dict=None, cutPoint=-1 ):
+def evaluate_ana(model, testsets, testsetNames, getAbsentWords=False, vocab_dict=None, cutPoint=-1):
     # for words in the vocab but not in the model. mapping from words to IDs
     absentModelID2Word = {}
     # words not in the vocab (of coz not in the model)
@@ -1577,18 +1614,18 @@ def evaluate_ana(model, testsets, testsetNames, getAbsentWords=False, vocab_dict
     # each is a tuple (add_score, mul_score)
     anaScores = []
 
-    #pdb.set_trace()
+    # pdb.set_trace()
 
-    for i,testset in enumerate(testsets):
+    for i, testset in enumerate(testsets):
         modelResults = []
         groundtruth = []
 
         correct_add = 0.0
         correct_mul = 0.0
         validPairNum = 0
-        currentScores = np.array( [ 0.0, 0.0 ] )
+        currentScores = np.array([0.0, 0.0])
 
-        for j,analogy in enumerate(testset):
+        for j, analogy in enumerate(testset):
 
             allWordsPresent = True
             watchWhenWrong = False
@@ -1603,19 +1640,20 @@ def evaluate_ana(model, testsets, testsetNames, getAbsentWords=False, vocab_dict
 
                 if x not in model:
                     if vocab_dict and x in vocab_dict:
-                        absentModelID2Word[ vocab_dict[x][0] ] = x
+                        absentModelID2Word[vocab_dict[x][0]] = x
                     else:
                         absentVocabWords[x] = 1
                     allWordsPresent = False
 
             if allWordsPresent:
                 a, a2, b, b2 = analogy
-                b2add, b2mul = predict_ana( model, a, a2, b, b2 )
+                b2add, b2mul = predict_ana(model, a, a2, b, b2)
                 validPairNum += 1
                 if b2add == b2:
                     correct_add += 1
                 elif watchWhenWrong:
-                    print "%s~%s = %s~%s,%.3f (%s,%3f)" %( a, a2, b, b2, model.similarity(b,b2), b2_add, model.similarity(b,b2_add) )
+                    print "%s~%s = %s~%s,%.3f (%s,%3f)" % (
+                    a, a2, b, b2, model.similarity(b, b2), b2_add, model.similarity(b, b2_add))
 
                 if b2mul == b2:
                     correct_mul += 1
@@ -1630,28 +1668,30 @@ def evaluate_ana(model, testsets, testsetNames, getAbsentWords=False, vocab_dict
                 """
 
                 # latest cumulative scores
-                currentScores = np.array( [ correct_add, correct_mul ] ) / validPairNum
+                currentScores = np.array([correct_add, correct_mul]) / validPairNum
 
             if j % 500 == 499:
-                print "\r%i/%i/%i: Add %.5f, Mul %.5f\r" %( j + 1, validPairNum, len(testset),
-                                                            currentScores[0], currentScores[1] ),
+                print "\r%i/%i/%i: Add %.5f, Mul %.5f\r" % (j + 1, validPairNum, len(testset),
+                                                            currentScores[0], currentScores[1]),
 
-        print "\n%s: %d analogies, %d valid" %( testsetNames[i], len(testset), validPairNum ),
+        print "\n%s: %d analogies, %d valid" % (testsetNames[i], len(testset), validPairNum),
         anaScores.append(currentScores)
-        print ". Add Score: %.5f, Mul Score: %.5f" %( currentScores[0], currentScores[1] )
+        print ". Add Score: %.5f, Mul Score: %.5f" % (currentScores[0], currentScores[1])
 
     return anaScores, absentModelID2Word, absentVocabWords, cutVocabWords
 
+
 def bench(func, N, topEigenNum=0):
-    print "Begin to factorize a %dx%d matrix" %(N,N)
+    print "Begin to factorize a %dx%d matrix" % (N, N)
     a = np.random.randn(N, N)
-    a = (a+a.T)/2
+    a = (a + a.T) / 2
     tic = time.clock()
     func(a)
     toc = time.clock()
     diff = toc - tic
-    print "Elapsed time is %.3f" %diff
+    print "Elapsed time is %.3f" % diff
     return diff
+
 
 # return a flag indicating whether installed mem is enough to computing a D*D dimensional Gramian matrix,
 # plus installed amounts and required amounts of mem
@@ -1661,14 +1701,14 @@ def bench(func, N, topEigenNum=0):
 # then extraVarsRatio=4 may be reasonable
 def isMemEnoughGramian(D, extraVarsRatio=0):
     mem = virtual_memory()
-    installedMemGB = round( mem.total * 1.0 / (1<<30) )
+    installedMemGB = round(mem.total * 1.0 / (1 << 30))
     # some overhead for np.array, so not divided by 1024^3
-    requiredMemGB = D * D * 4.0 * ( extraVarsRatio + 1 ) / 1000000000
-    
+    requiredMemGB = D * D * 4.0 * (extraVarsRatio + 1) / 1000000000
+
     # installed mem is enough
     if requiredMemGB <= installedMemGB:
         isEnough = 2
-        
+
     # give a warning, will use some paging file and make the computer very slow
     elif requiredMemGB <= installedMemGB * 1.2:
         isEnough = 1
@@ -1677,6 +1717,7 @@ def isMemEnoughGramian(D, extraVarsRatio=0):
         isEnough = 0
 
     return isEnough, installedMemGB, requiredMemGB
+
 
 # return a flag indicating whether installed mem is enough to computing eigendecomposition of a D*D matrix
 # plus installed amounts and required amounts of mem
@@ -1688,14 +1729,14 @@ def isMemEnoughGramian(D, extraVarsRatio=0):
 # so by default extraVarsRatio=5
 def isMemEnoughEigen(D, extraVarsRatio=5):
     mem = virtual_memory()
-    installedMemGB = round( mem.total * 1.0 / (1<<30) )
+    installedMemGB = round(mem.total * 1.0 / (1 << 30))
     # 15 is an empirical estimation. when D=30K, it takes around 50GB mem
-    requiredMemGB = D * D * 4.0 * ( extraVarsRatio + 8 ) / 1000000000
-    
+    requiredMemGB = D * D * 4.0 * (extraVarsRatio + 8) / 1000000000
+
     # installed mem is enough
     if requiredMemGB <= installedMemGB:
         isEnough = 2
-        
+
     # give a warning, will use some paging file and make the computer very slow
     elif requiredMemGB <= installedMemGB * 1.2:
         isEnough = 1
@@ -1704,6 +1745,7 @@ def isMemEnoughEigen(D, extraVarsRatio=5):
         isEnough = 0
 
     return isEnough, installedMemGB, requiredMemGB
+
 
 def extractSentenceWords(doc, remove_url=True, remove_punc="utf-8", min_length=1):
     if remove_punc:
@@ -1719,62 +1761,65 @@ def extractSentenceWords(doc, remove_url=True, remove_punc="utf-8", min_length=1
             doc = doc_u.encode(encoding)
         else:
             doc = doc_u
-            
+
     if remove_url:
         re_url = r"(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
-        doc = re.sub( re_url, "", doc )
-            
-    sentences = re.split( r"\s*[,;:`\"()?!{}]\s*|--+|\s*-\s+|''|\.\s|\.$|\.\.+|“|”", doc ) #"
+        doc = re.sub(re_url, "", doc)
+
+    sentences = re.split(r"\s*[,;:`\"()?!{}]\s*|--+|\s*-\s+|''|\.\s|\.$|\.\.+|“|”", doc)  # "
     wc = 0
     wordsInSentences = []
-    
+
     for sentence in sentences:
         if sentence == "":
             continue
 
-        if not re.search( "[A-Za-z0-9]", sentence ):
+        if not re.search("[A-Za-z0-9]", sentence):
             continue
 
-        words = re.split( r"\s+\+|^\+|\+?[\-*\/&%=<>\[\]~\|\@\$]+\+?|\'\s+|\'s\s+|\'s$|\s+\'|^\'|\'$|\$|\\|\s+", sentence )
+        words = re.split(r"\s+\+|^\+|\+?[\-*\/&%=<>\[\]~\|\@\$]+\+?|\'\s+|\'s\s+|\'s$|\s+\'|^\'|\'$|\$|\\|\s+",
+                         sentence)
 
-        words = filter( lambda w: w, words )
+        words = filter(lambda w: w, words)
 
         if len(words) >= min_length:
             wordsInSentences.append(words)
             wc += len(words)
 
-    #print "%d words extracted" %wc
+    # print "%d words extracted" %wc
     return wordsInSentences, wc
-                            
-def randomsample( X, n ):
+
+
+def randomsample(X, n):
     """ random.sample of the rows of X
         X may be sparse -- best csr
     """
-    sampleix = random.sample( xrange( X.shape[0] ), int(n) )
+    sampleix = random.sample(xrange(X.shape[0]), int(n))
     return X[sampleix]
-                            
+
+
 class VecModel:
     def __init__(self, V, vocab, word2id, vecNormalize=True, precompute_gramian=False):
         self.Vorig = V
-        self.Vnorm = np.array( [ normF(x) for x in self.Vorig ], dtype=np.float32 )
+        self.Vnorm = np.array([normF(x) for x in self.Vorig], dtype=np.float32)
         for i, w in enumerate(vocab):
             if self.Vnorm[i] == 0:
-                print "WARN: %s norm is 0" %w
+                print "WARN: %s norm is 0" % w
                 # set to 1 to avoid "divided by 0 exception"
                 self.Vnorm[i] = 1
-                
+
         self.V = self.Vorig / self.Vnorm[:, None]
         self.word2id = word2id
         self.vecNormalize = vecNormalize
         self.vocab = vocab
         self.iterIndex = 0
         self.cosTable = None
-        
+
         if precompute_gramian:
-            isEnough, installedMemGB, requiredMemGB = isMemEnoughGramian( len(V) )
+            isEnough, installedMemGB, requiredMemGB = isMemEnoughGramian(len(V))
             if isEnough == 2:
                 self.precomputeGramian()
-            
+
     def __contains__(self, w):
         return w in self.word2id
 
@@ -1783,19 +1828,19 @@ class VecModel:
             return None
         else:
             if self.vecNormalize:
-                return self.V[ self.word2id[w] ]
+                return self.V[self.word2id[w]]
             else:
-                return self.Vorig[ self.word2id[w] ]
+                return self.Vorig[self.word2id[w]]
 
     def orig(self, w):
         if w not in self:
             return None
         else:
-            return self.Vorig[ self.word2id[w] ]
+            return self.Vorig[self.word2id[w]]
 
     def precomputeGramian(self):
-        print "Precompute cosine matrix, will need %.1fGB RAM..." %( len(self.V) * len(self.V) * 4.0 / 1000000000 ),
-        self.cosTable = np.dot( self.V, self.V.T )
+        print "Precompute cosine matrix, will need %.1fGB RAM..." % (len(self.V) * len(self.V) * 4.0 / 1000000000),
+        self.cosTable = np.dot(self.V, self.V.T)
         print "Done."
 
     def similarity(self, x, y):
@@ -1806,8 +1851,8 @@ class VecModel:
             if self.cosTable is not None:
                 ix = self.word2id[x]
                 iy = self.word2id[y]
-                return self.cosTable[ix,iy]
-            return np.dot( self[x], self[y] )
+                return self.cosTable[ix, iy]
+            return np.dot(self[x], self[y])
 
         # when vectors are not normalized, return the raw dot product
         vx = self[x]
@@ -1816,7 +1861,7 @@ class VecModel:
         if normF(vx) <= 1e-6 or normF(vy) <= 1e-6:
             return 0
 
-        return np.dot( self[x], self[y] )
+        return np.dot(self[x], self[y])
 
     def sim_row(self, x):
         if x not in self:
@@ -1827,11 +1872,10 @@ class VecModel:
                 ix = self.word2id[x]
                 return self.cosTable[ix]
             return self.V.dot(self[x])
-            
+
         vx = self[x]
         # vector too short. the dot product similarity doesn't make sense
         if normF(vx) <= 1e-6:
-            return np.zeros( len(self.vocab) )
+            return np.zeros(len(self.vocab))
 
         return self.V.dot(vx)
-
