@@ -60,12 +60,7 @@ def initConsoleLogger(loggerName):
 
 def initFileLogger(loggerName, isAppending=False):
     loggerName = os.path.splitext(loggerName)[0]
-    currDate = timeToStr(time.time(), "%m.%d")
-    filename = "%s-%s.log" % (loggerName, currDate)
-    sn = 0
-    while os.path.isfile(filename):
-        sn += 1
-        filename = "%s-%s-%d.log" % (loggerName, currDate, sn)
+    filename = loggerName
 
     fileLogger = logging.getLogger(loggerName)
     if isAppending:

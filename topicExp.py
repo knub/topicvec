@@ -75,7 +75,13 @@ def main():
     parser.add_argument("--embeddings", type=str)
     parser.add_argument("--set-names", type=str)
     parser.add_argument("--max-iterations", type=int)
+    parser.add_argument("--results-folder", type=str)
     args = parser.parse_args()
+
+    try:
+        os.mkdir(args.results_folder)
+    except:
+        pass
 
     corpusName = args.corpus
     setNames = args.set_names.split(",")
@@ -127,8 +133,8 @@ def main():
         setDocNum, orig_docs_words, orig_docs_name, orig_docs_cat, cats_docsWords, \
         cats_docNames, category_names = loader(setName)
         catNum = len(category_names)
-        basename = "%s-%s-%d" % (corpusName, setName, setDocNum)
-        config['logfilename'] = basename
+        basename = args.results_folder #"%s-%s-%d" % (corpusName, setName, setDocNum)
+        config['logfilename'] = args.results_folder + "/log"
 
         # write_original_docs(basename, orig_docs_words, setDocNum)
 
@@ -158,7 +164,7 @@ def main():
             # write_word_mapping(basename, compactIds_word, sorted_wids, uniq_wid_num)
             continue
 
-        doc_name = write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
+        # write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
         # write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
         # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
 
@@ -172,10 +178,10 @@ def main():
             best_it, best_T, best_loglike = best_last_Ts[0]
             # last_it, last_T, last_loglike = best_last_Ts[1]
 
-            save_matrix_as_text(doc_name + "-em%d-best.topic.vec" % best_it, "best topics", best_T)
+            save_matrix_as_text(basename + "/topics.txt", "best topics", best_T)
             # save_matrix_as_text(doc_name + "-em%d-last.topic.vec" % last_it, "last topics", last_T)
 
-            save_matrix_as_text(basename + "-em%d.topic.prop" % topicvec.MAX_EM_ITERS, "topic proportion", docs_Em,
+            save_matrix_as_text(basename + "/document-topics", "topic proportion", docs_Em,
                                 docs_cat, docs_name, colSep="\t")
 
         else:
@@ -342,7 +348,6 @@ def write_stanford_bow_format(basename, category_names, docs_cat, docs_name, rea
         STANFORD.write("%s\t%s\t%s\n" % (category, doc_name, text))
     STANFORD.close()
     print "%d docs saved in '%s' in stanford bow format" % (readDocNum, stanford_filename)
-    return doc_name
 
 
 def write_original_docs(basename, orig_docs_words, setDocNum):
