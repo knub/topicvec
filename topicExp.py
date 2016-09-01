@@ -6,8 +6,8 @@ from corpusLoader import *
 from utils import *
 from topicvecDir import topicvecDir
 
-config = dict(  unigramFilename = "top1grams-wiki.txt",
-                word_vec_file = "25000-180000-500-BLK-8.0.vec",
+config = dict(  unigramFilename = "/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/model.dim-50.skip-gram.embedding.restricted.vocab.counts",
+                word_vec_file = "/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/dim-50.skip-gram.embedding.model.restricted.vocab.embedding",
                 #word_vec_file = "25000-500-EM.vec",
                 #word_vec_file = "7929-400-EM.vec",
                 K = 100,
