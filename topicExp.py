@@ -28,7 +28,7 @@ config = dict(
     # normalize by the sum of Em when updating topic embeddings
     # to avoid too big gradients
     grad_scale_Em_base=10000,
-    topW=12,
+    topW=10,
     # when topTopicMassFracPrintThres = 0, print all topics
     topTopicMassFracPrintThres=0,
     alpha0=0.1,
@@ -61,14 +61,11 @@ def usage():
 
 corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
 
+
 def main():
     start_time = time.time()
-    topic_vec_file = None
-    MAX_TopicProp_ITERS = 1
     onlyDumpWords = False
     separateCatTraining = False
-    topicTraitStr = ""
-    onlyGetOriginalText = False
 
     parser = ArgumentParser("topicvec")
     parser.add_argument("--corpus", type=str)
@@ -81,7 +78,7 @@ def main():
 
     try:
         os.mkdir(args.results_folder)
-    except:
+    except OSError:
         pass
 
     corpusName = args.corpus
@@ -90,38 +87,21 @@ def main():
     config["unigramFilename"] = args.vocabulary
     config["word_vec_file"] = args.embeddings
 
-    if not onlyGetOriginalText:
-        # The leading 'all-bogus' is only to get word mappings from the original IDs in
-        # the embedding file to a compact word ID list, to speed up computation of sLDA
-        # The mapping has to be done on 'all' to include all words in train and test sets
-        setNames = ['all-mapping'] + setNames
-
     if MAX_ITERS > 0:
         config['MAX_EM_ITERS'] = MAX_ITERS
 
     loader = corpus2loader[corpusName]
-    wid2compactId = {}
-    compactIds_word = []
-    hasIdMapping = False
 
     for si, setName in enumerate(setNames):
         print "Process set '%s':" % setName
-        if setName == 'all-mapping':
-            setName = 'all'
-            onlyGetWidMapping = True
-        else:
-            onlyGetWidMapping = False
 
-        setDocNum, orig_docs_words, orig_docs_name, orig_docs_cat, cats_docsWords, \
+        _, orig_docs_words, orig_docs_name, orig_docs_cat, cats_docsWords, \
         cats_docNames, category_names = loader(setName)
         catNum = len(category_names)
-        basename = args.results_folder #"%s-%s-%d" % (corpusName, setName, setDocNum)
+        basename = args.results_folder
         config['logfilename'] = args.results_folder + "/log"
 
         # write_original_docs(basename, orig_docs_words, setDocNum)
-
-        if onlyGetOriginalText:
-            continue
 
         if si == 0:
             topicvec = topicvecDir(**config)
@@ -133,18 +113,6 @@ def main():
         readDocNum = len(docs_idx)
         out("%d docs left after filtering empty docs" % (readDocNum))
         assert readDocNum == topicvec.D, "Returned %d doc idx != %d docs in Topicvec" % (readDocNum, topicvec.D)
-
-        if onlyGetWidMapping:
-            sorted_wids = sorted(topicvec.wid2freq.keys())
-            uniq_wid_num = len(sorted_wids)
-            for i, wid in enumerate(sorted_wids):
-                wid2compactId[wid] = i
-                compactIds_word.append(topicvec.vocab[wid])
-
-            hasIdMapping = True
-            onlyGetWidMapping = False
-            # write_word_mapping(basename, compactIds_word, sorted_wids, uniq_wid_num)
-            continue
 
         # write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
         # write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
