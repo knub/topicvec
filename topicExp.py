@@ -122,106 +122,23 @@ def main():
             continue
 
         # load topics from a file, infer the topic proportions, and save the proportions
-        if not separateCatTraining:
-            best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
-            # Em.shape: (50,)
-            # len(Pi): num_documents, Pi[0].shape: (37, 50)
-            # docs_Em.shape = (num_documents, 50)
+        best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
+        # Em.shape: (50,)
+        # len(Pi): num_documents, Pi[0].shape: (37, 50)
+        # docs_Em.shape = (num_documents, 50)
 
-            topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
-            with open(args.results_folder + "/topics", "w") as f:
-                f.writelines([l + "\n" for l in topic_lines])
+        topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
+        with open(args.results_folder + "/topics", "w") as f:
+            f.writelines([l + "\n" for l in topic_lines])
 
-            best_it, best_T, best_loglike = best_last_Ts[0]
-            # last_it, last_T, last_loglike = best_last_Ts[1]
+        best_it, best_T, best_loglike = best_last_Ts[0]
+        # last_it, last_T, last_loglike = best_last_Ts[1]
 
-            save_matrix_as_text(basename + "/topics_matrix", "best topics", best_T)
-            # save_matrix_as_text(doc_name + "-em%d-last.topic.vec" % last_it, "last topics", last_T)
+        save_matrix_as_text(basename + "/topics_matrix", "best topics", best_T)
+        # save_matrix_as_text(doc_name + "-em%d-last.topic.vec" % last_it, "last topics", last_T)
 
-            save_matrix_as_text(basename + "/document-topics", "topic proportion", docs_Em,
-                                docs_cat, docs_name, colSep="\t")
-
-        else:
-            # infer topics for each category, combine them and save in one file
-            if corpusName == "20news":
-                topicvec.setK(config['sepK_20news'])
-            else:
-                topicvec.setK(config['sepK_reuters'])
-
-            best_T = []
-            last_T = []
-            slim_T = []
-            cats_docs_idx = []
-            totalDocNum = 0
-            # pdb.set_trace()
-
-            for catID in xrange(catNum):
-                out("")
-                out("Inference on category %d:" % (catID + 1))
-                cat_docs_idx = topicvec.setDocs(cats_docsWords[catID], cats_docNames[catID])
-                totalDocNum += len(cat_docs_idx)
-                cats_docs_idx.append(cat_docs_idx)
-                cat_best_last_Ts, cat_Em, cat_docs_Em, cat_Pi = topicvec.inference()
-                cat_best_it, cat_best_T, cat_best_loglike = cat_best_last_Ts[0]
-                if cat_best_last_Ts[1]:
-                    cat_last_it, cat_last_T, cat_last_loglike = cat_best_last_Ts[1]
-                else:
-                    cat_last_it, cat_last_T, cat_last_loglike = cat_best_last_Ts[0]
-
-                # normalize by the number of documents
-                cat_Em2 = cat_Em / len(cat_docs_Em)
-
-                if catID > 0 and config['zero_topic0']:
-                    # remove the redundant null topic
-                    removeNullTopic = True
-                    best_T.append(cat_best_T[1:])
-                    last_T.append(cat_last_T[1:])
-                else:
-                    # keep null topic
-                    removeNullTopic = False
-                    best_T.append(cat_best_T)
-                    last_T.append(cat_last_T)
-
-                sorted_tids = sorted(range(topicvec.K), key=lambda k: cat_Em[k], reverse=True)
-                out("Topic normalized mass:")
-                s = ""
-                for tid in sorted_tids:
-                    s += "%d: %.3f " % (tid, cat_Em2[tid])
-                out(s)
-
-                if config['topTopicMassFracThres'] > 0:
-                    cat_Em2_thres = np.sum(cat_Em2) / topicvec.K * config['topTopicMassFracThres']
-                    out("Topic normalized mass thres: %.3f" % cat_Em2_thres)
-                    top_tids = []
-                    for i, tid in enumerate(sorted_tids):
-                        if cat_Em2[tid] <= cat_Em2_thres:
-                            break
-                        if removeNullTopic and tid == 0:
-                            continue
-                        top_tids.append(tid)
-
-                    out("Keep top %d topics:" % len(top_tids))
-                    s = ""
-                    for tid in top_tids:
-                        s += "%d: %.3f " % (tid, cat_Em2[tid])
-                    out(s)
-
-                    slim_cat_T = cat_last_T[top_tids]
-                    slim_T.append(slim_cat_T)
-
-            out("Done inference on %d docs in %d categories" % (totalDocNum, catNum))
-
-            best_T = np.concatenate(best_T)
-            last_T = np.concatenate(last_T)
-            save_matrix_as_text("%s-sep%d-em%d-best.topic.vec" % (basename, best_T.shape[0],
-                                                                  topicvec.MAX_EM_ITERS), "best topics", best_T)
-            save_matrix_as_text("%s-sep%d-em%d-last.topic.vec" % (basename, last_T.shape[0],
-                                                                  topicvec.MAX_EM_ITERS), "last topics", last_T)
-
-            if config['topTopicMassFracThres'] > 0:
-                slim_T = np.concatenate(slim_T)
-                save_matrix_as_text("%s-sep%d-em%d-slim.topic.vec" % (basename, slim_T.shape[0], topicvec.MAX_EM_ITERS),
-                                    "slim topics", slim_T)
+        save_matrix_as_text(basename + "/document-topics", "topic proportion", docs_Em,
+                            docs_cat, docs_name, colSep="\t")
 
     end_time = time.time()
     duration = int(end_time - start_time)
