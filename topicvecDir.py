@@ -29,7 +29,7 @@ class topicvecDir:
         self.max_grad_norm = kwargs.get('max_grad_norm', 0)
         self.grad_scale_Em_base = kwargs.get('grad_scale_Em_base', 0)
         # number of top words to output
-        self.topW = kwargs.get('topW', 12)
+        self.topW = kwargs.get('topW', 10)
         self.topDim = kwargs.get('topDim', 10)
         self.topTopicMassFracPrintThres = kwargs.get('topTopicMassFracPrintThres', 1)
         self.alpha0 = kwargs.get('alpha0', 5)
@@ -475,6 +475,7 @@ class topicvecDir:
         if len(np.where(selTids == 0)[0]) == 0:
             selTids = np.append(selTids, 0)
 
+        topic_lines = []
         for k in selTids:
             out("Topic %d (%.2f): %.1f%%" % (k, np.linalg.norm(self.T[k]), 100 * Em[k] / self.totalL))
 
@@ -482,6 +483,7 @@ class topicvecDir:
 
             out("Most relevant words:")
 
+            topic_lines_line = "%d %f" % (k, Em[k] / self.totalL)
             line = ""
             for rowID in rowID_sorted[:self.topW]:
                 wid = wids2[rowID]
@@ -492,6 +494,7 @@ class topicvecDir:
 
                 line += "%s (%d,%d): %.2f/%.2f/%.2f/%.2f " % (self.vocab[wid], wid, self.wid2freq[wid],
                                                               topicAvgProp, topicProp, sim, dotprod)
+                topic_lines_line += " " + self.vocab[wid]
 
             out(line)
 
@@ -514,6 +517,8 @@ class topicvecDir:
 
             out(line)
             out("")
+            topic_lines.append(topic_lines_line)
+        return topic_lines
 
     def docSentences2wids(self, docs_wordsInSentences):
         docs_wids = []
