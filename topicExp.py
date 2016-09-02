@@ -155,6 +155,10 @@ def main():
         # load topics from a file, infer the topic proportions, and save the proportions
         if not separateCatTraining:
             best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
+            topicvec.printTopWordsInTopic()
+            # Em.shape: (50,)
+            # len(Pi): num_documents, Pi[0].shape: (37, 50)
+            # docs_Em.shape = (num_documents, 50)
 
             best_it, best_T, best_loglike = best_last_Ts[0]
             # last_it, last_T, last_loglike = best_last_Ts[1]
