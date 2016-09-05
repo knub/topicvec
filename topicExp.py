@@ -7,11 +7,11 @@ from topicvecDir import topicvecDir
 from utils import *
 import mkl
 
-mkl.set_num_threads(3)
+mkl.set_num_threads(4)
 
 config = dict(
-    unigramFilename="/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/model.dim-50.skip-gram.embedding.restricted.vocab.counts",
-    word_vec_file="/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/dim-50.skip-gram.embedding.model.restricted.vocab.embedding",
+    unigramFilename="foo",
+    word_vec_file="bar",
     # word_vec_file = "25000-500-EM.vec",
     # word_vec_file = "7929-400-EM.vec",
     K=50,
@@ -108,24 +108,14 @@ def usage():
 corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
 
 
-def main():
+def main(args):
     start_time = time.time()
-
-    parser = ArgumentParser("topicvec")
-    parser.add_argument("--corpus", type=str)
-    parser.add_argument("--vocabulary", type=str)
-    parser.add_argument("--embeddings", type=str)
-    parser.add_argument("--set-names", type=str)
-    parser.add_argument("--max-iterations", type=int)
-    parser.add_argument("--results-folder", type=str)
-    args = parser.parse_args()
 
     try:
         os.mkdir(args.results_folder)
     except OSError:
         pass
 
-    setNames = args.set_names.split(",")
     MAX_ITERS = args.max_iterations
     config["unigramFilename"] = args.vocabulary
     config["word_vec_file"] = args.embeddings
@@ -277,4 +267,30 @@ def write_original_docs(basename, orig_docs_words, setDocNum):
 
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser("topicvec")
+    parser.add_argument("--corpus", type=str)
+    parser.add_argument("--vocabulary", type=str)
+    parser.add_argument("--embeddings", type=str)
+    parser.add_argument("--max-iterations", type=int)
+    parser.add_argument("--results-folder", type=str)
+    args = parser.parse_args()
+
+    orig_corpus = args.corpus
+    orig_vocabulary = args.vocabulary
+    orig_embeddings = args.embeddings
+
+    for dim in [100, 200]:
+        for iterations in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+            args.embeddings = args
+            args.max_iterations = iterations
+            args.vocabulary = orig_vocabulary.replace("dim-XXX", "dim-%d" % dim)
+            args.embeddings = orig_embeddings.replace("dim-XXX", "dim-%d" % dim)
+            args.corpus = orig_corpus.replace("dim-XXX", "dim-%d" % dim)
+            args.results_folder = "results/dim-%d.iterations-%d" % (dim, iterations)
+
+            base_corpus = os.path.basename(args.corpus)
+            base_vocab = os.path.basename(args.vocabulary)
+            base_embeddings = os.path.basename(args.embeddings)
+            print "%s - %s - %s" % (base_corpus, base_vocab, base_embeddings)
+            sys.stdout.flush()
+            main(args)
