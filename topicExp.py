@@ -110,7 +110,6 @@ corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
 
 def main():
     start_time = time.time()
-    onlyDumpWords = False
 
     parser = ArgumentParser("topicvec")
     parser.add_argument("--corpus", type=str)
@@ -126,7 +125,6 @@ def main():
     except OSError:
         pass
 
-    corpusName = args.corpus
     setNames = args.set_names.split(",")
     MAX_ITERS = args.max_iterations
     config["unigramFilename"] = args.vocabulary
@@ -135,50 +133,44 @@ def main():
     if MAX_ITERS > 0:
         config['MAX_EM_ITERS'] = MAX_ITERS
 
+    config['logfilename'] = args.results_folder + "/log"
     topicvec = topicvecDir(**config)
     out = topicvec.genOutputter(0)
 
-    for si, setName in enumerate(setNames):
-        print "Process set '%s':" % setName
+    orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
+    basename = args.results_folder
 
-        orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
-        basename = args.results_folder
-        config['logfilename'] = args.results_folder + "/log"
+    # write_original_docs(basename, orig_docs_words, setDocNum)
 
-        # write_original_docs(basename, orig_docs_words, setDocNum)
+    docs_idx = topicvec.setDocs(orig_docs_words, orig_docs_name)
+    docs_name = [orig_docs_name[i] for i in docs_idx]
+    docs_cat = [orig_docs_cat[i] for i in docs_idx]
+    readDocNum = len(docs_idx)
+    out("%d docs left after filtering empty docs" % (readDocNum))
+    assert readDocNum == topicvec.D, "Returned %d doc idx != %d docs in Topicvec" % (readDocNum, topicvec.D)
 
-        docs_idx = topicvec.setDocs(orig_docs_words, orig_docs_name)
-        docs_name = [orig_docs_name[i] for i in docs_idx]
-        docs_cat = [orig_docs_cat[i] for i in docs_idx]
-        readDocNum = len(docs_idx)
-        out("%d docs left after filtering empty docs" % (readDocNum))
-        assert readDocNum == topicvec.D, "Returned %d doc idx != %d docs in Topicvec" % (readDocNum, topicvec.D)
+    # write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
+    # write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
+    # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
 
-        # write_stanford_bow_format(basename, category_names, docs_cat, docs_name, readDocNum, topicvec)
-        # write_sLDA_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
-        # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
+    # load topics from a file, infer the topic proportions, and save the proportions
+    best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
+    # Em.shape: (50,)
+    # len(Pi): num_documents, Pi[0].shape: (37, 50)
+    # docs_Em.shape = (num_documents, 50)
 
-        if onlyDumpWords:
-            continue
+    topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
+    with open(args.results_folder + "/topics", "w") as f:
+        f.writelines([l + "\n" for l in topic_lines])
 
-        # load topics from a file, infer the topic proportions, and save the proportions
-        best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
-        # Em.shape: (50,)
-        # len(Pi): num_documents, Pi[0].shape: (37, 50)
-        # docs_Em.shape = (num_documents, 50)
+    best_it, best_T, best_loglike = best_last_Ts[0]
+    # last_it, last_T, last_loglike = best_last_Ts[1]
 
-        topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
-        with open(args.results_folder + "/topics", "w") as f:
-            f.writelines([l + "\n" for l in topic_lines])
+    save_matrix_as_text(basename + "/topics_matrix", "best topics", best_T)
+    # save_matrix_as_text(doc_name + "-em%d-last.topic.vec" % last_it, "last topics", last_T)
 
-        best_it, best_T, best_loglike = best_last_Ts[0]
-        # last_it, last_T, last_loglike = best_last_Ts[1]
-
-        save_matrix_as_text(basename + "/topics_matrix", "best topics", best_T)
-        # save_matrix_as_text(doc_name + "-em%d-last.topic.vec" % last_it, "last topics", last_T)
-
-        save_matrix_as_text(basename + "/document-topics", "topic proportion", docs_Em,
-                            docs_cat, docs_name, colSep="\t")
+    save_matrix_as_text(basename + "/document-topics", "topic proportion", docs_Em,
+                        docs_cat, docs_name, colSep="\t")
 
     end_time = time.time()
     duration = int(end_time - start_time)
