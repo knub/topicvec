@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 
 from corpusLoader import *
+from itertools import groupby
 from topicvecDir import topicvecDir
 from utils import *
 import mkl
@@ -50,6 +51,51 @@ config = dict(
     )
 
 
+def read_corpus(args):
+    with open(args.vocabulary, "r") as f:
+        vocab = [l.rstrip() for l in f.readlines()]
+        vocab = [l.split("\t")[0] for l in vocab]
+
+    corpus = []
+    current_doc = []
+    line_nr = 0
+
+    current_name = ""
+    current_class = ""
+    with open(args.corpus, "r") as f:
+        for line in f:
+            line = line.rstrip()
+            if line == "##":
+                if len(current_doc) > 0:
+                    corpus.append((current_doc, current_name, current_class))
+                    current_doc = []
+                else:
+                    print "empty document at line " + line_nr
+            elif "\t" in line:
+                split = line.split("\t")
+                current_name = split[0]
+                current_class = int(split[1])
+            else:
+                word_id = int(line[:6])
+                # topic_id = int(line[7:])
+                current_doc.append(word_id)
+                # topics.add(topicId)
+            line_nr += 1
+
+    corpus = [([vocab[word_id] for word_id in doc], name, clazz) for (doc, name, clazz) in corpus]
+
+    document_sentences = []
+    names = []
+    classes = []
+    for name, group in groupby(corpus, key=lambda x: x[1]):
+        group = list(group)
+        sentences = [g[0] for g in group]
+        document_sentences.append(sentences)
+        names.append(name)
+        classes.append(group[0][2])
+    return document_sentences, names, classes
+
+
 def usage():
     print """Usage: topicExp.py -s                corpus_name set_name(s)
                    -p topic_vec_file corpus_name set_name(s)
@@ -65,7 +111,6 @@ corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
 def main():
     start_time = time.time()
     onlyDumpWords = False
-    separateCatTraining = False
 
     parser = ArgumentParser("topicvec")
     parser.add_argument("--corpus", type=str)
@@ -90,22 +135,17 @@ def main():
     if MAX_ITERS > 0:
         config['MAX_EM_ITERS'] = MAX_ITERS
 
-    loader = corpus2loader[corpusName]
+    topicvec = topicvecDir(**config)
+    out = topicvec.genOutputter(0)
 
     for si, setName in enumerate(setNames):
         print "Process set '%s':" % setName
 
-        _, orig_docs_words, orig_docs_name, orig_docs_cat, cats_docsWords, \
-        cats_docNames, category_names = loader(setName)
-        catNum = len(category_names)
+        orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
         basename = args.results_folder
         config['logfilename'] = args.results_folder + "/log"
 
         # write_original_docs(basename, orig_docs_words, setDocNum)
-
-        if si == 0:
-            topicvec = topicvecDir(**config)
-            out = topicvec.genOutputter(0)
 
         docs_idx = topicvec.setDocs(orig_docs_words, orig_docs_name)
         docs_name = [orig_docs_name[i] for i in docs_idx]
