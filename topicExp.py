@@ -279,7 +279,7 @@ if __name__ == "__main__":
     orig_vocabulary = args.vocabulary
     orig_embeddings = args.embeddings
 
-    for dim in [100, 200]:
+    for dim in [50]:
         for iterations in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
             args.embeddings = args
             args.max_iterations = iterations

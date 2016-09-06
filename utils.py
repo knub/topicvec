@@ -317,24 +317,23 @@ def save_embeddings(filename, vocab, V, matrixName):
 def save_matrix_as_text(filename, rowTypeName, T, *extraCols, **kwargs):
     FMAT = open(filename, "wb")
     print "Save %s matrix into '%s'" % (rowTypeName, filename)
-    colSep = kwargs.get("colSep", " ")
+    colSep = kwargs.get("colSep", "\t")
 
     K, N = T.shape
 
     # pdb.set_trace()
     extraColNum = len(extraCols)
 
-    FMAT.write("%d %d %d\n" % (K, N, extraColNum))
     for i in xrange(K):
         # if rowNames is provided, print the corresponding row name at the beginning of each line
         line = ""
         for j in xrange(extraColNum):
             col = str(extraCols[j][i])
             line += col + colSep
-        line += "%.5f" % T[i, 0]
 
+        line += "%.7f" % T[i, 0]
         for j in xrange(1, N):
-            line += " %.5f" % T[i, j]
+            line += "\t%.7f" % T[i, j]
         FMAT.write("%s\n" % line)
 
     FMAT.close()
