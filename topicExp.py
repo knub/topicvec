@@ -13,7 +13,7 @@ config = dict(
     word_vec_file="/data/wikipedia/2016-06-21/topic-models/topic.20news.50-1500.with-classes/dim-50.skip-gram.embedding.model.restricted.vocab.embedding",
     # word_vec_file = "25000-500-EM.vec",
     # word_vec_file = "7929-400-EM.vec",
-    K=100,
+    K=50,
     # for separate category training, each category has 10 topics, totalling 200
     sepK_20news=15,
     sepK_reuters=12,
