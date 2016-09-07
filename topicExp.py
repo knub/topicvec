@@ -289,18 +289,20 @@ if __name__ == "__main__":
     orig_vocabulary = args.vocabulary
     orig_embeddings = args.embeddings
 
-    for dim in [50]:
-        for iterations in [500]:
-            args.embeddings = args
-            args.max_iterations = iterations
-            args.vocabulary = orig_vocabulary.replace("dim-XXX", "dim-%d" % dim)
-            args.embeddings = orig_embeddings.replace("dim-XXX", "dim-%d" % dim)
-            args.corpus = orig_corpus.replace("dim-XXX", "dim-%d" % dim)
-            args.results_folder = "results/corpus-orig.dim-%d.iterations-%d" % (dim, iterations)
+    main(args)
 
-            base_corpus = os.path.basename(args.corpus)
-            base_vocab = os.path.basename(args.vocabulary)
-            base_embeddings = os.path.basename(args.embeddings)
-            print "%s - %s - %s" % (base_corpus, base_vocab, base_embeddings)
-            sys.stdout.flush()
-            main(args)
+    # for dim in [50]:
+    #     for iterations in [500]:
+    #         args.embeddings = args
+    #         args.max_iterations = iterations
+    #         args.vocabulary = orig_vocabulary.replace("dim-XXX", "dim-%d" % dim)
+    #         args.embeddings = orig_embeddings.replace("dim-XXX", "dim-%d" % dim)
+    #         args.corpus = orig_corpus.replace("dim-XXX", "dim-%d" % dim)
+    #         args.results_folder = "results/corpus-orig.dim-%d.iterations-%d" % (dim, iterations)
+    #
+    #         base_corpus = os.path.basename(args.corpus)
+    #         base_vocab = os.path.basename(args.vocabulary)
+    #         base_embeddings = os.path.basename(args.embeddings)
+    #         print "%s - %s - %s" % (base_corpus, base_vocab, base_embeddings)
+    #         sys.stdout.flush()
+    #         main(args)
