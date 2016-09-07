@@ -76,6 +76,7 @@ def main():
     parser.add_argument("--embeddings", type=str)
     parser.add_argument("--set-names", type=str)
     parser.add_argument("--max-iterations", type=int)
+    parser.add_argument("--proportions", type=str)
     args = parser.parse_args()
 
     corpusName = args.corpus
@@ -83,6 +84,14 @@ def main():
     MAX_ITERS = args.max_iterations
     config["unigramFilename"] = args.vocabulary
     config["word_vec_file"] = args.embeddings
+
+    if args.proportions:
+        print "Only infering topic proportions!"
+        onlyInferTopicProp = True
+        topic_vec_file = args.proportions
+        #     if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
+        #     disable to speed up
+        #config['useDrdtApprox'] = False
 
     # for opt, arg in opts:
         # if opt == '-p':
