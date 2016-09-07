@@ -127,7 +127,17 @@ def main(args):
     topicvec = topicvecDir(**config)
     out = topicvec.genOutputter(0)
 
-    orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
+    # our_orig_docs_words, our_orig_docs_name, our_orig_docs_cat = read_corpus(args)
+    _, their_orig_docs_words, their_orig_docs_name, their_orig_docs_cat, _, _, _ = corpus2loader["20news"]("train")
+
+    orig_docs_cat = their_orig_docs_cat
+    orig_docs_words = their_orig_docs_words
+    orig_docs_name = their_orig_docs_name
+
+    # our = zip(orig_docs_name, orig_docs_words)
+    # our = sorted(our, key=lambda x: x[0])
+    # theirs = zip(foo_orig_docs_name, foo_orig_docs_words)
+    # theirs = sorted(theirs, key=lambda x: x[0])
     basename = args.results_folder
 
     # write_original_docs(basename, orig_docs_words, setDocNum)
@@ -279,14 +289,14 @@ if __name__ == "__main__":
     orig_vocabulary = args.vocabulary
     orig_embeddings = args.embeddings
 
-    for dim in [50]:
-        for iterations in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+    for dim in [50, 100, 200]:
+        for iterations in [100]:
             args.embeddings = args
             args.max_iterations = iterations
             args.vocabulary = orig_vocabulary.replace("dim-XXX", "dim-%d" % dim)
             args.embeddings = orig_embeddings.replace("dim-XXX", "dim-%d" % dim)
             args.corpus = orig_corpus.replace("dim-XXX", "dim-%d" % dim)
-            args.results_folder = "results/dim-%d.iterations-%d" % (dim, iterations)
+            args.results_folder = "results/corpus-orig.dim-%d.iterations-%d" % (dim, iterations)
 
             base_corpus = os.path.basename(args.corpus)
             base_vocab = os.path.basename(args.vocabulary)
