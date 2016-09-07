@@ -289,8 +289,8 @@ if __name__ == "__main__":
     orig_vocabulary = args.vocabulary
     orig_embeddings = args.embeddings
 
-    for dim in [50, 100, 200]:
-        for iterations in [100]:
+    for dim in [50]:
+        for iterations in [500]:
             args.embeddings = args
             args.max_iterations = iterations
             args.vocabulary = orig_vocabulary.replace("dim-XXX", "dim-%d" % dim)
