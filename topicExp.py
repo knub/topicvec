@@ -154,13 +154,13 @@ def main(args):
     # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
 
     # load topics from a file, infer the topic proportions, and save the proportions
-    best_last_Ts, Em, docs_Em, Pi = topicvec.inference()
+    best_last_Ts, Em, docs_Em, Pi = topicvec.inference(args.result_folder)
     # Em.shape: (50,)
     # len(Pi): num_documents, Pi[0].shape: (37, 50)
     # docs_Em.shape = (num_documents, 50)
 
     topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
-    with open(args.results_folder + "/topics", "w") as f:
+    with open(args.results_folder + "/iteration-" + str(args.max_iterations) + ".topics", "w") as f:
         f.writelines([l + "\n" for l in topic_lines])
 
     best_it, best_T, best_loglike = best_last_Ts[0]

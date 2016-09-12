@@ -46,7 +46,7 @@ class topicvecDir:
         self.remove_stop = kwargs.get('remove_stop', True)
         self.seed = kwargs.get('seed', 0)
         self.verbose = kwargs.get('verbose', 1)
-        self.printTopic_iterNum = kwargs.get('printTopic_iterNum', 20)
+        self.printTopic_iterNum = kwargs.get('printTopic_iterNum', 10)
         self.calcSum_pi_v_iterNum = kwargs.get('calcSum_pi_v_iterNum', 1)
         self.VStep_iterNum = kwargs.get('VStep_iterNum', 1)
         self.calcLike_iterNum = kwargs.get('calcLike_iterNum', 1)
@@ -724,7 +724,7 @@ class topicvecDir:
 
         return docs_Em, self.docs_Pi
 
-    def inference(self):
+    def inference(self, result_folder):
         if self.D == 0:
             print "document set is empty or uninitialized"
             return None, None, None, None
@@ -834,7 +834,9 @@ class topicvecDir:
                     self.fileLogger.debug(self.r)
 
                 # self.printTopWordsInTopic(unif_docs_theta, False)
-                self.printTopWordsInTopic(self.docs_theta, False)
+                topic_lines = self.printTopWordsInTopic(self.docs_theta, False)
+                with open(result_folder + "/iteration-" + str(self.it) + ".topics", "w") as f:
+                    f.writelines([l + "\n" for l in topic_lines])
             else:
                 print "%s  \r" % iterStatusMsg,
                 self.fileLogger.debug(iterStatusMsg)
