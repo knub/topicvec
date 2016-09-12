@@ -77,6 +77,7 @@ def main():
     parser.add_argument("--set-names", type=str)
     parser.add_argument("--max-iterations", type=int)
     parser.add_argument("--proportions", type=str)
+    parser.add_argument("--separate-categories", action='store_true')
     args = parser.parse_args()
 
     corpusName = args.corpus
@@ -92,6 +93,10 @@ def main():
         #     if 'useDrdtApprox' == True, will precompute matrix Evv, which is very slow
         #     disable to speed up
         #config['useDrdtApprox'] = False
+
+    if args.separate_categories:
+        print "Training seperate categories"
+        separateCatTraining = True
 
     # for opt, arg in opts:
         # if opt == '-p':
