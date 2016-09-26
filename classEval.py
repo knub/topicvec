@@ -47,7 +47,7 @@ else:
     test_file = "reuters-test-2255.svm-%s.txt" %filetype
 
 train_features_sparse, true_train_classes = load_svmlight_file(train_file)
-test_features_sparse, true_test_classes = load_svmlight_file(test_file)
+test_features_sparse, true_test_classes = load_svmlight_file(train_file)
 #nonzeroColIDs = np.union1d( train_features_sparse.nonzero()[1], test_features_sparse.nonzero()[1] )
 #train_features = train_features_sparse[:, nonzeroColIDs].toarray()
 #test_features = test_features_sparse[:, nonzeroColIDs].toarray()
