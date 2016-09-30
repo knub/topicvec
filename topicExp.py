@@ -154,7 +154,7 @@ def main(args):
     # write_svm_bow_format(basename, docs_cat, readDocNum, topicvec, wid2compactId)
 
     # load topics from a file, infer the topic proportions, and save the proportions
-    best_last_Ts, Em, docs_Em, Pi = topicvec.inference(args.result_folder)
+    best_last_Ts, Em, docs_Em, Pi = topicvec.inference(args.results_folder)
     # Em.shape: (50,)
     # len(Pi): num_documents, Pi[0].shape: (37, 50)
     # docs_Em.shape = (num_documents, 50)
