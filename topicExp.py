@@ -25,7 +25,7 @@ config = dict(
     init_l=1,
     # cap the norm of the gradient of topics to avoid too big gradients
     max_grad_norm=5,
-    Mstep_sample_topwords=25000,
+    Mstep_sample_topwords=20000,
     # normalize by the sum of Em when updating topic embeddings
     # to avoid too big gradients
     grad_scale_Em_base=10000,
