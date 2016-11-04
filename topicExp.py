@@ -51,6 +51,18 @@ config = dict(
     )
 
 
+def read_nips_corpus(args):
+    with open(args.corpus) as f:
+        lines = [l.rstrip() for l in f.readlines()]
+        lines = [l.split("\t") for l in lines]
+        lines = [(l[0], l[1]) for l in lines]
+        lines = [(l[0], l[1].split(" ")) for l in lines]
+
+        docs = [map(lambda x: x[1], list(sentences)) for doc, sentences in groupby(lines, lambda x: x[0])]
+
+    return docs, map(lambda x: str(x), list(range(len(docs)))), [0] * len(docs)
+
+
 def read_corpus(args):
     with open(args.vocabulary, "r") as f:
         vocab = [l.rstrip() for l in f.readlines()]
@@ -127,12 +139,16 @@ def main(args):
     topicvec = topicvecDir(**config)
     out = topicvec.genOutputter(0)
 
-    # our_orig_docs_words, our_orig_docs_name, our_orig_docs_cat = read_corpus(args)
-    _, their_orig_docs_words, their_orig_docs_name, their_orig_docs_cat, _, _, _ = corpus2loader["20news"]("train")
+    if "/nips/" in args.corpus:
+        orig_docs_words, orig_docs_name, orig_docs_cat = read_nips_corpus(args)
+    else:
+        orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
 
-    orig_docs_cat = their_orig_docs_cat
-    orig_docs_words = their_orig_docs_words
-    orig_docs_name = their_orig_docs_name
+    # _, orig_docs_words, orig_docs_name, orig_docs_cat, _, _, _ = corpus2loader["20news"]("train")
+
+    # orig_docs_cat = their_orig_docs_cat
+    # orig_docs_words = their_orig_docs_words
+    # orig_docs_name = their_orig_docs_name
 
     # our = zip(orig_docs_name, orig_docs_words)
     # our = sorted(our, key=lambda x: x[0])
