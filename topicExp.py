@@ -167,6 +167,11 @@ def main(args):
     with open(args.results_folder + "/iteration-" + str(args.max_iterations) + ".topics", "w") as f:
         f.writelines([l + "\n" for l in topic_lines])
 
+    topicvec.topW = 500
+    topic_lines = topicvec.printTopWordsInTopic(topicvec.docs_theta, False)
+    with open(args.results_folder + "/iteration-" + str(args.max_iterations) + ".500.topics", "w") as f:
+        f.writelines([l + "\n" for l in topic_lines])
+
     best_it, best_T, best_loglike = best_last_Ts[0]
     # last_it, last_T, last_loglike = best_last_Ts[1]
 
