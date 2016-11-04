@@ -108,18 +108,6 @@ def read_corpus(args):
     return document_sentences, names, classes
 
 
-def usage():
-    print """Usage: topicExp.py -s                corpus_name set_name(s)
-                   -p topic_vec_file corpus_name set_name(s)
-                   [ -w ]            corpus_name set_name(s)
-  set_name(s): 'train', 'test' or 'train,test' (will save in separate files)
-  -s:          Train on separate categories
-  -w:          Dump words only (no inference of topics)"""
-
-
-corpus2loader = {'20news': load_20news, 'reuters': load_reuters}
-
-
 def main(args):
     start_time = time.time()
 
