@@ -119,6 +119,7 @@ def main(args):
     MAX_ITERS = args.max_iterations
     config["unigramFilename"] = args.vocabulary
     config["word_vec_file"] = args.embeddings
+    config["K"] = args.num_topics + 1
 
     if MAX_ITERS > 0:
         config['MAX_EM_ITERS'] = MAX_ITERS
@@ -291,6 +292,7 @@ if __name__ == "__main__":
     parser.add_argument("--vocabulary", type=str)
     parser.add_argument("--embeddings", type=str)
     parser.add_argument("--max-iterations", type=int)
+    parser.add_argument("--num-topics", type=int)
     parser.add_argument("--results-folder", type=str)
     args = parser.parse_args()
 
