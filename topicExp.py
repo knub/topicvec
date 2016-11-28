@@ -7,7 +7,7 @@ from topicvecDir import topicvecDir
 from utils import *
 import mkl
 
-mkl.set_num_threads(10)
+mkl.set_num_threads(1)
 
 config = dict(
     unigramFilename="foo",
@@ -303,7 +303,12 @@ if __name__ == "__main__":
     orig_vocabulary = args.vocabulary
     orig_embeddings = args.embeddings
 
+    from datetime import datetime
+    print datetime.now()
+    sys.stdout.flush()
     main(args)
+    print datetime.now()
+    sys.stdout.flush()
 
     # for dim in [50]:
     #     for iterations in [500]:
