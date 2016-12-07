@@ -7,7 +7,7 @@ from topicvecDir import topicvecDir
 from utils import *
 import mkl
 
-mkl.set_num_threads(1)
+mkl.set_num_threads(10)
 
 config = dict(
     unigramFilename="foo",
