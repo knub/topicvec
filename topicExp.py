@@ -7,7 +7,7 @@ from topicvecDir import topicvecDir
 from utils import *
 import mkl
 
-mkl.set_num_threads(10)
+mkl.set_num_threads(1)
 
 config = dict(
     unigramFilename="foo",
@@ -132,12 +132,12 @@ def main(args):
     topicvec = topicvecDir(**config)
     out = topicvec.genOutputter(0)
 
-    # if "/nips/" in args.corpus:
-    #     orig_docs_words, orig_docs_name, orig_docs_cat = read_nips_corpus(args)
-    # else:
-    #     orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
+    if "/nips/" in args.corpus:
+        orig_docs_words, orig_docs_name, orig_docs_cat = read_nips_corpus(args)
+    else:
+        orig_docs_words, orig_docs_name, orig_docs_cat = read_corpus(args)
 
-    _, orig_docs_words, orig_docs_name, orig_docs_cat, _, _, _ = corpus2loader["20news"]("train")
+    # _, orig_docs_words, orig_docs_name, orig_docs_cat, _, _, _ = corpus2loader["20news"]("train")
 
     # orig_docs_cat = their_orig_docs_cat
     # orig_docs_words = their_orig_docs_words
